@@ -1,43 +1,9 @@
+from model import Model
+
 import sys
 import csv
 import math
 import random
-
-# A feature name is represented as "index_name-hour^power". e.g. "PM2.5-9^1"
-class Model:
-    def __init__(self, bias, feature_config):
-        self.bias = bias
-        self.feature_config = feature_config
-
-    def calculate_y(self, feature_values):
-        y = self.bias
-        for k, v in self.feature_config.items():
-            index_name = k.split("-")[0]
-            hour = int(k.split("-")[1].split("^")[0])
-            power = int(k.split("^")[1])
-            weight = v
-            y += weight * (feature_values[index_name][hour - 1] ** power)
-        return y
-
-    def calculate_loss_root(self, feature_values, real_y):
-        return real_y - self.calculate_y(feature_values)
-
-    def calculate_bias_gradient(self, feature_values, real_y):
-        return 2 * self.calculate_loss_root(feature_values, real_y) * (-1)
-
-    def calculate_feature_gradient(self, feature_values, real_y, feature_name):
-        index_name = feature_name.split("-")[0]
-        hour = int(feature_name.split("-")[1].split("^")[0])
-        power = int(feature_name.split("^")[1])
-        feature_value = feature_values[index_name][hour - 1]
-        return 2 * self.calculate_loss_root(feature_values, real_y) * (-1) * (
-                feature_value ** power)
-
-def read_file_to_string(file_name, encoding = "utf-8"):
-    with open(file_name, "rb") as f:
-        file_bytes = f.read()
-        file_string = file_bytes.decode(encoding)
-    return file_string
 
 random.seed()
 
@@ -45,18 +11,40 @@ training_file_name = sys.argv[1]
 testing_file_name = sys.argv[2]
 output_file_name = sys.argv[3]
 
-training_csv = csv.reader(
-        read_file_to_string(training_file_name, "big5").split("\n")[1:])
-training_data = {}
-for row in training_csv:
-    index_name = row[2]
-    index_values = [float(s) if s != "NR" else 0.0 for s in row[3:]]
-    if not index_name in training_data:
-        training_data[index_name] = []
-    training_data[index_name] += index_values
+index_names = [
+        "AMB_TEMP",
+        "CH4",
+        "CO",
+        "NMHC",
+        "NO",
+        "NO2",
+        "NOx",
+        "O3",
+        "PM10",
+        "PM2.5",
+        "RAINFALL",
+        "RH",
+        "SO2",
+        "THC",
+        "WD_HR",
+        "WIND_DIREC",
+        "WIND_SPEED",
+        "WS_HR",
+        ]
+
+training_data = { k: [] for k in index_names }
+with open(training_file_name, "r", encoding = "big5") as training_file:
+    training_csv = csv.reader(training_file)
+    for row in training_csv:
+        index_name = row[2]
+        if index_name in index_names:
+            index_values = [ float(s) if s != "NR" else 0.0 for s in row[3:] ]
+            training_data[index_name] += index_values
+
+# print(training_data)
 
 freeze_gradient = 0.0001
-num_iterations = 10000
+num_iterations = 1000000
 num_examples = 1
 learning_rate = 0.001
 bias = 0.0
@@ -275,10 +263,12 @@ while t < num_iterations and not is_freezed:
             k: beta_2 * history["feature_v_ts"][t - 1][k] + (
                 1 - beta_2) * (v ** 2) for k, v in feature_gradients.items()
             }
-    feature_m_t_hats = {k: v / (
-        1 - (beta_1 ** t)) for k, v in feature_m_ts.items()}
-    feature_v_t_hats = {k: v / (
-        1 - (beta_2 ** t)) for k, v in feature_v_ts.items()}
+    feature_m_t_hats = {
+            k: v / (1 - (beta_1 ** t)) for k, v in feature_m_ts.items()
+            }
+    feature_v_t_hats = {
+            k: v / (1 - (beta_2 ** t)) for k, v in feature_v_ts.items()
+            }
 
     bias -= (learning_rate * bias_m_t_hat / (math.sqrt(bias_v_t_hat) + delta))
     for k in feature_config:
@@ -309,17 +299,17 @@ for i in range(100):
     delta += abs(real_y - model.calculate_y(feature_values))
 print(delta / 100)
 
-testing_csv = csv.reader(
-        read_file_to_string(testing_file_name, "big5").split("\n"))
 testing_data = {}
-for row in testing_csv:
-    if row:
-        i = row[0]
-        index_name = row[1]
-        if i not in testing_data:
-            testing_data[i] = {}
-        testing_data[i][index_name] = [ (
-            float(s)) if s != "NR" else 0.0 for s in row[2:] ]
+with open(testing_file_name, "r", encoding = "big5") as testing_file:
+    testing_csv = csv.reader(testing_file)
+    for row in testing_csv:
+        if row:
+            i = row[0]
+            index_name = row[1]
+            if i not in testing_data:
+                testing_data[i] = {}
+            testing_data[i][index_name] = [ (
+                float(s)) if s != "NR" else 0.0 for s in row[2:] ]
 
 output_string = "id,value\n"
 for k, feature_values in testing_data.items():
