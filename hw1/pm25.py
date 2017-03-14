@@ -3,9 +3,6 @@ from model import Model
 import sys
 import csv
 import math
-import random
-
-random.seed()
 
 training_file_name = sys.argv[1]
 testing_file_name = sys.argv[2]
@@ -32,14 +29,24 @@ index_names = [
         "WS_HR",
         ]
 
-training_data = { k: [] for k in index_names }
+training_data = { k: [ [] for i in range(12) ] for k in index_names }
+nth_index = 0
+nth_day = 0
+nth_month = 0
 with open(training_file_name, "r", encoding = "big5") as training_file:
     training_csv = csv.reader(training_file)
     for row in training_csv:
         index_name = row[2]
         if index_name in index_names:
             index_values = [ float(s) if s != "NR" else 0.0 for s in row[3:] ]
-            training_data[index_name] += index_values
+            training_data[index_name][nth_month] += index_values
+            nth_index += 1
+            if nth_index == len(index_names):
+                nth_index = 0
+                nth_day += 1
+                if nth_day == 20:
+                    nth_day = 0
+                    nth_month += 1
 
 # print(training_data)
 
@@ -229,6 +236,8 @@ history = {
         "feature_m_ts": [{ k: 0.0 for k in feature_config }],
         "feature_v_ts": [{ k: 0.0 for k in feature_config }]
         }
+nth_hour = 0
+nth_month = 0
 while t < num_iterations and not is_freezed:
     t += 1
 
@@ -238,11 +247,16 @@ while t < num_iterations and not is_freezed:
     feature_gradients = { k: 0.0 for k in feature_config }
 
     for j in range(num_examples):
-        random_begin = random.randrange(len(training_data["PM2.5"]) - 10)
         feature_values = {
-                k: l[random_begin:(random_begin + 10)]
+                k: l[nth_month][nth_hour:nth_hour + 10]
                 for k, l in training_data.items()
                 }
+        nth_hour += 1
+        if nth_hour == (24 * 20 - 10):
+            nth_hour = 0
+            nth_month += 1
+            if nth_month == 12:
+                nth_month = 0
         real_y = feature_values["PM2.5"][9]
         bias_gradient += model.calculate_bias_gradient(feature_values, real_y)
         for k in feature_config:
@@ -290,11 +304,16 @@ while t < num_iterations and not is_freezed:
 model = Model(bias, feature_config)
 delta = 0.0
 for i in range(100):
-    random_begin = random.randrange(len(training_data["PM2.5"]) - 10)
     feature_values = {
-            k: l[random_begin:(random_begin + 10)]
+            k: l[nth_month][nth_hour:nth_hour + 10]
             for k, l in training_data.items()
             }
+    nth_hour += 1
+    if nth_hour == (24 * 20 - 10):
+        nth_hour = 0
+        nth_month += 1
+        if nth_month == 12:
+            nth_month = 0
     real_y = feature_values["PM2.5"][9]
     delta += abs(real_y - model.calculate_y(feature_values))
 print(delta / 100)
