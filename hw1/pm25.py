@@ -224,7 +224,7 @@ feature_config = {
 # See http://sebastianruder.com/optimizing-gradient-descent/index.html#adam
 beta_1 = 0.9
 beta_2 = 0.999
-delta = 0.00000001
+epsilon = 0.00000001
 
 is_freezed = False
 t = 0
@@ -238,6 +238,7 @@ history = {
         }
 nth_hour = 0
 nth_month = 0
+loss = 0
 while t < num_iterations and not is_freezed:
     t += 1
 
@@ -245,6 +246,23 @@ while t < num_iterations and not is_freezed:
 
     bias_gradient = 0.0
     feature_gradients = { k: 0.0 for k in feature_config }
+
+    for j in range():
+        feature_values = {
+                k: l[nth_month][nth_hour:nth_hour + 10]
+                for k, l in training_data.items()
+                }
+        nth_hour += 1
+        if nth_hour == (24 * 20 - 10):
+            nth_hour = 0
+            nth_month += 1
+            if nth_month == 12:
+                nth_month = 0
+                print("loss:", loss)
+                loss = 0
+        real_y = feature_values["PM2.5"][9]
+
+        loss += model.calculate_loss_root(feature_values, real_y) ** 2
 
     for j in range(num_examples):
         feature_values = {
@@ -284,10 +302,10 @@ while t < num_iterations and not is_freezed:
             k: v / (1 - (beta_2 ** t)) for k, v in feature_v_ts.items()
             }
 
-    bias -= (learning_rate * bias_m_t_hat / (math.sqrt(bias_v_t_hat) + delta))
+    bias -= (learning_rate * bias_m_t_hat / (math.sqrt(bias_v_t_hat) + epsilon))
     for k in feature_config:
         feature_config[k] -= (learning_rate * feature_m_t_hats[k] / (
-            math.sqrt(feature_v_t_hats[k]) + delta))
+            math.sqrt(feature_v_t_hats[k]) + epsilon))
 
     history["bias_gradient"].append(bias_gradient);
     history["bias_m_t"].append(bias_m_t);
@@ -302,8 +320,9 @@ while t < num_iterations and not is_freezed:
         is_freezed = True
 
 model = Model(bias, feature_config)
+num_validations = num_iterations
 delta = 0.0
-for i in range(100):
+for i in range(num_validations):
     feature_values = {
             k: l[nth_month][nth_hour:nth_hour + 10]
             for k, l in training_data.items()
@@ -315,8 +334,8 @@ for i in range(100):
         if nth_month == 12:
             nth_month = 0
     real_y = feature_values["PM2.5"][9]
-    delta += abs(real_y - model.calculate_y(feature_values))
-print(delta / 100)
+    delta += (abs(real_y - model.calculate_y(feature_values)) ** 2)
+print("Final RMSE:", math.sqrt(delta / num_validations))
 
 testing_data = {}
 with open(testing_file_name, "r", encoding = "big5") as testing_file:
