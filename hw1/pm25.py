@@ -23,6 +23,28 @@ index_names = [
         "WS_HR",
         ]
 
+feature_table = [
+    1, # bias
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # AMB_TEMP
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # CH4
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # CO
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # NMHC
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # NO
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # NO2
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # NOx
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # O3
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # PM10
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # PM2.5
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # RAINFALL
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # RH
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # SO2
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # THC
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # WD_HR
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # WIND_DIREC
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # WIND_SPEED
+    1, 1, 1, 1, 1, 1, 1, 1, 1, # WS_HR
+    ]
+
 training_file_name = sys.argv[1]
 testing_file_name = sys.argv[2]
 output_file_name = sys.argv[3]
@@ -49,53 +71,24 @@ for i in range(12):
                         training_data[k][num_month_data * i + j + h])
         training_y.append(training_data[9][num_month_data * i + j + 9])
 
-feature_table = np.matrix([[
-    1, # bias
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # AMB_TEMP
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # CH4
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # CO
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # NMHC
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # NO
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # NO2
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # NOx
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # O3
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # PM10
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # PM2.5
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # RAINFALL
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # RH
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # SO2
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # THC
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # WD_HR
-    0, 0, 0, 0, 0, 0, 0, 0, 0, # WIND_DIREC
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # WIND_SPEED
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # WS_HR
-    ]]).transpose()
+for i, features in enumerate(training_x):
+    training_x[i] = [ n for j, n in enumerate(
+        features) if feature_table[j] == 1 ]
 
-num_features = 1 + 18 * 9 # Includes bias.
-weights = np.matrix([[ 0.0 for i in range(num_features) ]]).transpose()
-# print(weights.shape)
-num_iterations = 1000
+num_features = len(training_x[0])
+weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
+num_iterations = 1000000
 learning_rate = 1000
-previous_gradient = np.matrix(
-        [[ 0.0 for i in range(num_features)]]).transpose()
-previous_RMSE = 0.0
+previous_gradient = np.matrix([[ 0.0 for _ in range(num_features)]]).transpose()
 for t in range(num_iterations):
     y = np.dot(np.matrix(training_x), weights)
     loss_root = y - np.matrix(training_y).transpose()
     gradient = 2 * np.dot(np.transpose(np.matrix(training_x)), loss_root)
-    # print(gradient.shape)
     previous_gradient += np.square(gradient)
     weights -= learning_rate * (gradient / np.sqrt(previous_gradient))
-    weights = np.multiply(weights, feature_table)
-    # learning_rate = learning_rate / (t + 1) ** 0.5
-    # print(weights)
-    # sys.stdin.read(1)
-    RMSE = (np.sum(np.square(loss_root)) / (num_month_data - 9) / 12) ** 0.5
     if t % 100 == 0:
+        RMSE = (np.sum(np.square(loss_root)) / (num_month_data - 9) / 12) ** 0.5
         print(RMSE)
-    # if abs(previous_RMSE - RMSE) < 1e-7:
-    #     break
-    previous_RMSE = RMSE
 
 test_x = {}
 test_y = {}
