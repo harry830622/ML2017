@@ -1,6 +1,8 @@
 import numpy as np
 import csv
 import sys
+import os.path
+import pickle
 
 index_names = [
         "AMB_TEMP",
@@ -49,60 +51,118 @@ training_file_name = sys.argv[1]
 testing_file_name = sys.argv[2]
 output_file_name = sys.argv[3]
 
-training_data = [ [] for i in range(18) ]
-with open(training_file_name, "r", encoding = "big5") as training_file:
-    training_csv = csv.reader(training_file)
-    nth_row = 0
-    for row in training_csv:
-        if nth_row != 0:
-            index_values = [ float(s) if s != "NR" else 0.0 for s in row[3:] ]
-            training_data[(nth_row - 1) % 18] += index_values
-        nth_row += 1
+model_file_name = "./model"
+is_model_existed = os.path.isfile(model_file_name)
 
-training_x = []
-training_y = []
-num_month_data = 24 * 20
-for i in range(12):
-    for j in range(num_month_data - 9):
-        training_x.append([1])
-        for k in range(18):
-            for h in range(9):
-                training_x[(num_month_data - 9) * i + j].append(
-                        training_data[k][num_month_data * i + j + h])
-        training_y.append(training_data[9][num_month_data * i + j + 9])
+mean = []
+max_min = []
+log = {
+        "feature_table": feature_table,
+        "mean": mean,
+        "max_min": max_min,
+        "weights": [],
+        "RMSEs": [],
+        }
 
-for i, features in enumerate(training_x):
-    training_x[i] = [ n for j, n in enumerate(
-        features) if feature_table[j] == 1 ]
+if not is_model_existed:
+    print("Model doesn't exist. Start training...")
 
-num_features = len(training_x[0])
-weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
-num_iterations = 1000000
-learning_rate = 1000
-previous_gradient = np.matrix([[ 0.0 for _ in range(num_features)]]).transpose()
-for t in range(num_iterations):
-    y = np.dot(np.matrix(training_x), weights)
-    loss_root = y - np.matrix(training_y).transpose()
-    gradient = 2 * np.dot(np.transpose(np.matrix(training_x)), loss_root)
-    previous_gradient += np.square(gradient)
-    weights -= learning_rate * (gradient / np.sqrt(previous_gradient))
-    if t % 100 == 0:
+    training_data = [ [] for i in range(18) ]
+    with open(training_file_name, "r", encoding = "big5") as training_file:
+        training_csv = csv.reader(training_file)
+        nth_row = 0
+        for row in training_csv:
+            if nth_row != 0:
+                index_values = [ float(
+                    s) if s != "NR" else 0.0 for s in row[3:] ]
+                training_data[(nth_row - 1) % 18] += index_values
+            nth_row += 1
+
+    raw_data = training_data
+
+    training_data = np.matrix(training_data)
+    mean = training_data.mean(1)
+    max_min = training_data.max(1) - training_data.min(1)
+    training_data = (training_data - mean) / max_min
+
+    log["mean"] = mean.flatten().tolist()[0]
+    log["max_min"] = max_min.flatten().tolist()[0]
+
+    training_data = training_data.tolist()
+
+    training_x = []
+    training_y = []
+    num_month_data = 20 * 24
+    for i in range(12):
+        for j in range(num_month_data - 9):
+            training_x.append([1])
+            for k in range(18):
+                for h in range(9):
+                    training_x[(num_month_data - 9) * i + j].append(
+                            training_data[k][num_month_data * i + j + h])
+            training_y.append(raw_data[9][num_month_data * i + j + 9])
+
+    for i, features in enumerate(training_x):
+        training_x[i] = [ n for j, n in enumerate(
+            features) if feature_table[j] == 1 ]
+
+    num_features = len(training_x[0])
+    weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
+    num_iterations = 1000000
+    learning_rate = 1000
+    previous_gradient = np.matrix(
+            [[ 0.0 for _ in range(num_features)]]).transpose()
+    previous_RMSE = 0.0
+    for t in range(num_iterations):
+        y = np.dot(np.matrix(training_x), weights)
+        loss_root = y - np.matrix(training_y).transpose()
+        gradient = 2 * np.dot(np.transpose(np.matrix(training_x)), loss_root)
+        previous_gradient += np.square(gradient)
+        weights -= learning_rate * (gradient / np.sqrt(previous_gradient))
         RMSE = (np.sum(np.square(loss_root)) / (num_month_data - 9) / 12) ** 0.5
-        print(RMSE)
+        if t % 100 == 0:
+            log["RMSEs"].append(RMSE)
+            print("RMSE:", RMSE)
+        if abs(RMSE - previous_RMSE) < 1e-11:
+            log["RMSEs"].append(RMSE)
+            break
+        previous_RMSE = RMSE
+    log["RMSEs"].append(previous_RMSE)
+    log["weights"] = weights.flatten().tolist()[0]
+
+    with open("model", "wb") as model:
+        pickle.dump(log, model)
+
+else:
+    print("Model exists. Use trained weights...")
+    with open(model_file_name, "rb") as model:
+        log = pickle.load(model)
+        feature_table = log["feature_table"]
+        weights = log["weights"]
+        print("Features:", feature_table)
+        print("Trained weights:", weights)
+        mean = np.matrix(log["mean"]).transpose()
+        max_min = np.matrix(log["max_min"]).transpose()
+        weights = np.matrix(weights).transpose()
 
 test_x = {}
 test_y = {}
 with open(testing_file_name, "r", encoding = "big5") as testing_file:
     testing_csv = csv.reader(testing_file)
-    i = 1
+    i = 0
     for row in testing_csv:
         d = row[0]
         if not d in test_x:
             test_x[d] = [1]
-        test_x[d] += [ float(s) if s != "NR" else 0.0 for s in row[2:] ]
-        if i % 18 == 0:
-            test_y[d] = np.dot(np.matrix([test_x[d]]), weights)
+        nine_hours = (np.matrix(
+                [[ float(s) if s != "NR" else 0.0 for s in row[2:] ]]) - (
+                        mean.item(i % 18))) / max_min.item(i % 18)
+        test_x[d] += nine_hours.tolist()[0]
         i += 1
+
+for k, xs in test_x.items():
+    test_x[k] = [ n for j, n in enumerate(xs) if feature_table[j] == 1 ]
+    test_y[k] = np.dot(np.matrix([test_x[k]]), weights)
 
 output_string = "id,value\n"
 for k, y in test_y.items():
