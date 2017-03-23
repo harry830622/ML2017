@@ -100,7 +100,7 @@ if not is_model_existed:
                 for h in range(9):
                     training_x[(num_month_data - 9) * i + j].append(
                             training_data[k][num_month_data * i + j + h])
-            training_y.append(raw_data[9][num_month_data * i + j + 9])
+            training_y.append(training_data[9][num_month_data * i + j + 9])
 
     for i, features in enumerate(training_x):
         training_x[i] = [ n for j, n in enumerate(
@@ -110,16 +110,22 @@ if not is_model_existed:
     weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
     num_iterations = 1000000
     learning_rate = 1000
+    lamda = 1000
     previous_gradient = np.matrix(
             [[ 0.0 for _ in range(num_features)]]).transpose()
     previous_RMSE = 0.0
     for t in range(num_iterations):
         y = np.dot(np.matrix(training_x), weights)
         loss_root = y - np.matrix(training_y).transpose()
-        gradient = 2 * np.dot(np.transpose(np.matrix(training_x)), loss_root)
+        regularizer = np.copy(weights)
+        regularizer[0, 0] = 0
+        regularizer = np.sum(regularizer)
+        gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root) + (
+                2 * lamda * regularizer)
         previous_gradient += np.square(gradient)
         weights -= learning_rate * (gradient / np.sqrt(previous_gradient))
-        RMSE = (np.sum(np.square(loss_root)) / (num_month_data - 9) / 12) ** 0.5
+        RMSE = (np.sum(loss_root + lamda * regularizer ** 2) / (
+                num_month_data - 9) / 12) ** 0.5
         if t % 100 == 0:
             log["RMSEs"].append(RMSE)
             print("RMSE:", RMSE)
@@ -160,9 +166,12 @@ with open(testing_file_name, "r", encoding = "big5") as testing_file:
         test_x[d] += nine_hours.tolist()[0]
         i += 1
 
+pm25_mean = mean.item(11)
+pm25_max_min = max_min.item(11)
 for k, xs in test_x.items():
     test_x[k] = [ n for j, n in enumerate(xs) if feature_table[j] == 1 ]
-    test_y[k] = np.dot(np.matrix([test_x[k]]), weights)
+    test_y[k] = np.dot(
+            np.matrix([test_x[k]]), weights) * pm25_max_min + pm25_mean
 
 output_string = "id,value\n"
 for k, y in test_y.items():
