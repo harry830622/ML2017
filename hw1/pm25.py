@@ -1,5 +1,6 @@
 import numpy as np
 import csv
+import copy
 import sys
 import os.path
 import pickle
@@ -34,17 +35,17 @@ feature_table = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, # NO
     0, 0, 0, 0, 0, 0, 0, 0, 0, # NO2
     0, 0, 0, 0, 0, 0, 0, 0, 0, # NOx
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # O3
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # PM10
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # O3
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # PM10
     1, 1, 1, 1, 1, 1, 1, 1, 1, # PM2.5
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # RAINFALL
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # RAINFALL
     0, 0, 0, 0, 0, 0, 0, 0, 0, # RH
     0, 0, 0, 0, 0, 0, 0, 0, 0, # SO2
     0, 0, 0, 0, 0, 0, 0, 0, 0, # THC
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # WD_HR
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # WD_HR
     0, 0, 0, 0, 0, 0, 0, 0, 0, # WIND_DIREC
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # WIND_SPEED
-    1, 1, 1, 1, 1, 1, 1, 1, 1, # WS_HR
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # WIND_SPEED
+    0, 0, 0, 0, 0, 0, 0, 0, 0, # WS_HR
     ]
 
 training_file_name = sys.argv[1]
@@ -64,6 +65,7 @@ log = {
         "RMSEs": [],
         }
 
+is_model_existed = False
 if not is_model_existed:
     print("Model doesn't exist. Start training...")
 
@@ -78,7 +80,7 @@ if not is_model_existed:
                 training_data[(nth_row - 1) % 18] += index_values
             nth_row += 1
 
-    raw_data = training_data
+    raw_data = copy.deepcopy(training_data)
 
     training_data = np.matrix(training_data)
     mean = training_data.mean(1)
@@ -92,19 +94,35 @@ if not is_model_existed:
 
     training_x = []
     training_y = []
+    num_months = 10
     num_month_data = 20 * 24
-    for i in range(12):
+    for i in range(num_months):
         for j in range(num_month_data - 9):
             training_x.append([1])
             for k in range(18):
                 for h in range(9):
                     training_x[(num_month_data - 9) * i + j].append(
                             training_data[k][num_month_data * i + j + h])
-            training_y.append(training_data[9][num_month_data * i + j + 9])
+            training_y.append(raw_data[9][num_month_data * i + j + 9])
+
+    validating_x = []
+    validating_y = []
+    for i in range(2):
+        for j in range(num_month_data - 9):
+            validating_x.append([1])
+            for k in range(18):
+                for h in range(9):
+                    validating_x[(num_month_data - 9) * i + j].append(
+                            training_data[k][num_month_data * (i + 10) + j + h])
+            validating_y.append(raw_data[9][num_month_data * (i + 10) + j + 9])
 
     for i, features in enumerate(training_x):
         training_x[i] = [ n for j, n in enumerate(
             features) if feature_table[j] == 1 ]
+    for i, features in enumerate(validating_x):
+        validating_x[i] = [ n for j, n in enumerate(
+            features) if feature_table[j] == 1 ]
+
 
     num_features = len(training_x[0])
     weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
@@ -117,15 +135,18 @@ if not is_model_existed:
     for t in range(num_iterations):
         y = np.dot(np.matrix(training_x), weights)
         loss_root = y - np.matrix(training_y).transpose()
-        regularizer = np.copy(weights)
-        regularizer[0, 0] = 0
-        regularizer = np.sum(regularizer)
-        gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root) + (
-                2 * lamda * regularizer)
+        # regularizer = np.copy(weights)
+        # regularizer[0, 0] = 0
+        # regularizer = np.sum(regularizer)
+        # gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root) + (
+        #         2 * lamda * regularizer)
+        gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root)
         previous_gradient += np.square(gradient)
         weights -= learning_rate * (gradient / np.sqrt(previous_gradient))
-        RMSE = (np.sum(loss_root + lamda * regularizer ** 2) / (
-                num_month_data - 9) / 12) ** 0.5
+        # RMSE = (np.sum(loss_root + lamda * regularizer ** 2) / (
+        #         num_month_data - 9) / 12) ** 0.5
+        RMSE = (np.sum(np.square(loss_root)) / (
+            num_month_data - 9) / num_months) ** 0.5
         if t % 100 == 0:
             log["RMSEs"].append(RMSE)
             print("RMSE:", RMSE)
@@ -135,6 +156,11 @@ if not is_model_existed:
         previous_RMSE = RMSE
     log["RMSEs"].append(previous_RMSE)
     log["weights"] = weights.flatten().tolist()[0]
+
+    v_y = np.dot(np.matrix(validating_x), weights)
+    v_loss_root = v_y - np.matrix(validating_y).transpose()
+    v_RMSE = (np.sum(np.square(v_loss_root)) / (num_month_data - 9) / 2) ** 0.5
+    print(v_RMSE)
 
     with open("model", "wb") as model:
         pickle.dump(log, model)
@@ -166,12 +192,9 @@ with open(testing_file_name, "r", encoding = "big5") as testing_file:
         test_x[d] += nine_hours.tolist()[0]
         i += 1
 
-pm25_mean = mean.item(11)
-pm25_max_min = max_min.item(11)
 for k, xs in test_x.items():
     test_x[k] = [ n for j, n in enumerate(xs) if feature_table[j] == 1 ]
-    test_y[k] = np.dot(
-            np.matrix([test_x[k]]), weights) * pm25_max_min + pm25_mean
+    test_y[k] = np.dot(np.matrix([test_x[k]]), weights)
 
 output_string = "id,value\n"
 for k, y in test_y.items():
