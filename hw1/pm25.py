@@ -123,6 +123,18 @@ if not is_model_existed:
         validating_x[i] = [ n for j, n in enumerate(
             features) if feature_table[j] == 1 ]
 
+    for features in training_x:
+        features += [ n ** 2 for n in features ]
+    for features in validating_x:
+        features += [ n ** 2 for n in features ]
+    for features in training_x:
+        features += [ n ** 3 for n in features ]
+    for features in validating_x:
+        features += [ n ** 3 for n in features ]
+    for features in training_x:
+        features += [ n ** 4 for n in features ]
+    for features in validating_x:
+        features += [ n ** 4 for n in features ]
 
     num_features = len(training_x[0])
     weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
@@ -151,6 +163,7 @@ if not is_model_existed:
             log["RMSEs"].append(RMSE)
             print("RMSE:", RMSE)
         if abs(RMSE - previous_RMSE) < 1e-11:
+            print("RMSE:", RMSE)
             log["RMSEs"].append(RMSE)
             break
         previous_RMSE = RMSE
@@ -160,7 +173,7 @@ if not is_model_existed:
     v_y = np.dot(np.matrix(validating_x), weights)
     v_loss_root = v_y - np.matrix(validating_y).transpose()
     v_RMSE = (np.sum(np.square(v_loss_root)) / (num_month_data - 9) / 2) ** 0.5
-    print(v_RMSE)
+    print("Validating RMSE:", v_RMSE)
 
     with open("model", "wb") as model:
         pickle.dump(log, model)
