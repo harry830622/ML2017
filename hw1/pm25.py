@@ -123,40 +123,38 @@ if not is_model_existed:
         validating_x[i] = [ n for j, n in enumerate(
             features) if feature_table[j] == 1 ]
 
-    for features in training_x:
-        features += [ n ** 2 for n in features ]
-    for features in validating_x:
-        features += [ n ** 2 for n in features ]
-    for features in training_x:
-        features += [ n ** 3 for n in features ]
-    for features in validating_x:
-        features += [ n ** 3 for n in features ]
-    for features in training_x:
-        features += [ n ** 4 for n in features ]
-    for features in validating_x:
-        features += [ n ** 4 for n in features ]
+    # for features in training_x:
+    #     features += [ n ** 2 for n in features ]
+    # for features in validating_x:
+    #     features += [ n ** 2 for n in features ]
+    # for features in training_x:
+    #     features += [ n ** 3 for n in features ]
+    # for features in validating_x:
+    #     features += [ n ** 3 for n in features ]
+    # for features in training_x:
+    #     features += [ n ** 4 for n in features ]
+    # for features in validating_x:
+    #     features += [ n ** 4 for n in features ]
 
     num_features = len(training_x[0])
     weights = np.matrix([[ 0.0 for _ in range(num_features) ]]).transpose()
     num_iterations = 1000000
     learning_rate = 1000
-    lamda = 1000
+    lamda = 100000
     previous_gradient = np.matrix(
             [[ 0.0 for _ in range(num_features)]]).transpose()
     previous_RMSE = 0.0
     for t in range(num_iterations):
         y = np.dot(np.matrix(training_x), weights)
         loss_root = y - np.matrix(training_y).transpose()
-        # regularizer = np.copy(weights)
-        # regularizer[0, 0] = 0
-        # regularizer = np.sum(regularizer)
-        # gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root) + (
-        #         2 * lamda * regularizer)
-        gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root)
+        regularizer = np.copy(weights)
+        regularizer[0, 0] = 0
+        regularizer = np.sum(regularizer)
+        gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root) + (
+                2 * lamda * regularizer)
+        # gradient = 2 * np.dot(np.matrix(training_x).transpose(), loss_root)
         previous_gradient += np.square(gradient)
         weights -= learning_rate * (gradient / np.sqrt(previous_gradient))
-        # RMSE = (np.sum(loss_root + lamda * regularizer ** 2) / (
-        #         num_month_data - 9) / 12) ** 0.5
         RMSE = (np.sum(np.square(loss_root)) / (
             num_month_data - 9) / num_months) ** 0.5
         if t % 100 == 0:
