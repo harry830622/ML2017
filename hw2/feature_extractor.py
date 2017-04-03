@@ -3,23 +3,6 @@
 import numpy as np
 import csv
 
-feature_config = {
-    "age": True,
-    "workclass": True,
-    "fnlwgt": False,
-    "education": True,
-    "education-num": True,
-    "marital-status": True,
-    "occupation": True,
-    "relationship": True,
-    "race": True,
-    "sex": True,
-    "capital-gain": True,
-    "capital-loss": True,
-    "hours-per-week": True,
-    "native-country": True,
-}
-
 feature_names = [
     "age",
     "workclass",
@@ -48,6 +31,7 @@ feature_table = {
         "State-gov",
         "Without-pay",
         "Never-worked",
+        # "?",
     ],
     "fnlwgt": [],
     "education": [
@@ -93,6 +77,7 @@ feature_table = {
         "Priv-house-serv",
         "Protective-serv",
         "Armed-Forces",
+        # "?",
     ],
     "relationship": [
         "Wife",
@@ -155,6 +140,7 @@ feature_table = {
         "Peru",
         "Hong",
         "Holand-Netherlands",
+        # "?",
     ],
 }
 
@@ -175,7 +161,7 @@ feature_idx = {
     "native-country": -1,
 }
 
-def extract_features(raw_training_file_name, raw_testing_file_name):
+def extract_features(raw_training_file_name, raw_testing_file_name, feature_config, is_normalized):
     training_x = []
     training_y = []
     with open(raw_training_file_name, "r") as raw_training_file:
@@ -235,18 +221,18 @@ def extract_features(raw_training_file_name, raw_testing_file_name):
 
     testing_x = np.matrix(testing_x, dtype = np.float64)
 
-    # Normalize
-    training_x_mean = training_x.mean(axis = 0)
-    training_x_max_min = training_x.max(axis = 0) - training_x.min(axis = 0)
-    for i, row in enumerate(training_x):
-        for k, j in feature_idx.items():
-            is_continuous = len(feature_table[k]) == 0
-            if is_continuous:
-                training_x[i, j] = (training_x[i, j] - training_x_mean[0, j]) / training_x_max_min[0, j]
-    for i, row in enumerate(testing_x):
-        for k, j in feature_idx.items():
-            is_continuous = len(feature_table[k]) == 0
-            if is_continuous:
-                testing_x[i, j] = (testing_x[i, j] - training_x_mean[(0, j)]) / training_x_max_min[0, j]
+    if is_normalized:
+        training_x_mean = training_x.mean(axis = 0)
+        training_x_max_min = training_x.max(axis = 0) - training_x.min(axis = 0)
+        for i, row in enumerate(training_x):
+            for k, j in feature_idx.items():
+                is_continuous = len(feature_table[k]) == 0
+                if is_continuous:
+                    training_x[i, j] = (training_x[i, j] - training_x_mean[0, j]) / training_x_max_min[0, j]
+        for i, row in enumerate(testing_x):
+            for k, j in feature_idx.items():
+                is_continuous = len(feature_table[k]) == 0
+                if is_continuous:
+                    testing_x[i, j] = (testing_x[i, j] - training_x_mean[(0, j)]) / training_x_max_min[0, j]
 
     return training_x, training_y, testing_x
