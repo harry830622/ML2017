@@ -242,11 +242,11 @@ def extract_features(raw_training_file_name, raw_testing_file_name):
         for k, j in feature_idx.items():
             is_continuous = len(feature_table[k]) == 0
             if is_continuous:
-                training_x[(i, j)] = (training_x[(i, j)] - training_x_mean[(0, j)]) / training_x_max_min[(0, j)]
+                training_x[i, j] = (training_x[i, j] - training_x_mean[0, j]) / training_x_max_min[0, j]
     for i, row in enumerate(testing_x):
         for k, j in feature_idx.items():
             is_continuous = len(feature_table[k]) == 0
             if is_continuous:
-                testing_x[(i, j)] = (testing_x[(i, j)] - training_x_mean[(0, j)]) / training_x_max_min[(0, j)]
+                testing_x[i, j] = (testing_x[i, j] - training_x_mean[(0, j)]) / training_x_max_min[0, j]
 
     return training_x, training_y, testing_x

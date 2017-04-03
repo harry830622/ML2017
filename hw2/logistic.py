@@ -23,9 +23,9 @@ weights = np.matrix([weights], dtype = np.float64).transpose()
 previous_gradient = np.matrix([previous_gradient], dtype = np.float64).transpose()
 while t < num_iterations:
     t += 1
-    y = sigmoid(np.dot(training_x, weights))
+    y = sigmoid(training_x.dot(weights))
     loss = y - training_y
-    gradient = np.dot(np.transpose(training_x), loss)
+    gradient = training_x.transpose().dot(loss)
     previous_gradient += np.square(gradient)
     weights -= learning_rate * gradient / np.sqrt(previous_gradient)
     if t % 100 == 0:
@@ -37,6 +37,6 @@ with open(output_file_name, "w") as output_file:
     i = 0
     for row in testing_x:
         i += 1
-        y = sigmoid(np.dot(row, weights))
+        y = sigmoid(row.dot(weights))
         output_file.write(str(i) + ",")
         output_file.write("1\n" if y >= 0.5 else "0\n")
