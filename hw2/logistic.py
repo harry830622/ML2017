@@ -6,20 +6,21 @@ import numpy as np
 import sys
 
 feature_config = {
-    "age": True,
-    "workclass": True,
-    "fnlwgt": False,
-    "education": True,
-    "education-num": True,
-    "marital-status": True,
-    "occupation": True,
-    "relationship": True,
-    "race": True,
-    "sex": True,
-    "capital-gain": True,
-    "capital-loss": True,
-    "hours-per-week": True,
-    "native-country": True,
+    "bias": [1],
+    "age": [1, 2],
+    "fnlwgt": [1, 2],
+    "education-num": [1, 2],
+    "capital-gain": [1, 2],
+    "capital-loss": [1, 2],
+    "hours-per-week": [1, 2],
+    "workclass": [0],
+    "education": [0],
+    "marital-status": [0],
+    "occupation": [0],
+    "relationship": [0],
+    "race": [0],
+    "sex": [0],
+    "native-country": [0],
 }
 
 def sigmoid(z):
@@ -31,8 +32,8 @@ training_x, training_y, testing_x = feature_extractor.extract_features(sys.argv[
 num_features = training_x.shape[1]
 weights = [ 0.0 for _ in range(num_features) ]
 
-num_iterations = 1e6
-learning_rate = 1
+num_iterations = 1e3
+learning_rate = 1e1
 
 t = 0
 previous_gradient = [ 0.0 for _ in range(num_features) ]
@@ -46,7 +47,7 @@ while t < num_iterations:
     previous_gradient += np.square(gradient)
     weights -= learning_rate * gradient / np.sqrt(previous_gradient)
     if t % 100 == 0:
-        print("ERR:", np.sum(np.abs(loss)))
+        print("ERR: %f \tL: %f" % (np.sum(np.abs(loss)), np.sum(-1 * training_y.transpose().dot(np.log(sigmoid(y))) - (1 - training_y).transpose().dot(1 - np.log(sigmoid(y))))))
 
 output_file_name = sys.argv[6]
 with open(output_file_name, "w") as output_file:

@@ -6,20 +6,21 @@ import numpy as np
 import sys
 
 feature_config = {
-    "age": True,
-    "workclass": True,
-    "fnlwgt": False,
-    "education": True,
-    "education-num": True,
-    "marital-status": True,
-    "occupation": True,
-    "relationship": True,
-    "race": True,
-    "sex": True,
-    "capital-gain": True,
-    "capital-loss": True,
-    "hours-per-week": True,
-    "native-country": True,
+    "bias": [],
+    "age": [1],
+    "fnlwgt": [],
+    "education-num": [1],
+    "capital-gain": [1],
+    "capital-loss": [1],
+    "hours-per-week": [1],
+    "workclass": [0],
+    "education": [0],
+    "marital-status": [0],
+    "occupation": [0],
+    "relationship": [0],
+    "race": [0],
+    "sex": [0],
+    "native-country": [0],
 }
 
 def sigmoid(z):

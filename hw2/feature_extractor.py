@@ -169,11 +169,16 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
         for row in raw_training_csv:
             feature_values = []
             idx = 0
+            has_bias = feature_config["bias"]
+            if has_bias:
+                feature_values.append(1)
+                idx += 1
             for i, x in enumerate(row):
                 x = x.strip()
                 if i < len(feature_names):
                     feature_name = feature_names[i]
-                    if feature_config[feature_name]:
+                    is_feature_on = len(feature_config[feature_name]) != 0
+                    if is_feature_on:
                         if feature_idx[feature_name] == -1:
                             feature_idx[feature_name] = idx
                         subfeatures = feature_table[feature_name]
@@ -186,8 +191,9 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
                             feature_values += subfeature_values;
                             idx += len(subfeatures)
                         else:
-                            feature_values.append(float(x))
-                            idx += 1
+                            for p in feature_config[feature_name]:
+                                feature_values.append(float(x) ** p)
+                                idx += 1
                 else:
                     training_y.append(1.0 if x == ">50K" else 0.0)
             training_x.append(feature_values)
@@ -203,10 +209,14 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
             nth_row += 1
             if nth_row != 1:
                 feature_values = []
+                has_bias = feature_config["bias"]
+                if has_bias:
+                    feature_values.append(1)
                 for i, x in enumerate(row):
                     x = x.strip()
                     feature_name = feature_names[i]
-                    if feature_config[feature_name]:
+                    is_feature_on = len(feature_config[feature_name]) != 0
+                    if is_feature_on:
                         subfeatures = feature_table[feature_name]
                         is_discrete = len(subfeatures) != 0
                         if is_discrete:
@@ -216,7 +226,8 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
                                     subfeature_values[j] = 1.0
                             feature_values += subfeature_values;
                         else:
-                            feature_values.append(float(x))
+                            for p in feature_config[feature_name]:
+                                feature_values.append(float(x) ** p)
                 testing_x.append(feature_values)
 
     testing_x = np.matrix(testing_x, dtype = np.float64)
@@ -228,11 +239,13 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
             for k, j in feature_idx.items():
                 is_continuous = len(feature_table[k]) == 0
                 if is_continuous:
-                    training_x[i, j] = (training_x[i, j] - training_x_mean[0, j]) / training_x_max_min[0, j]
+                    for p in feature_config[k]:
+                        training_x[i, j + p - 1] = (training_x[i, j + p - 1] - training_x_mean[0, j + p - 1]) / training_x_max_min[0, j + p - 1]
         for i, row in enumerate(testing_x):
             for k, j in feature_idx.items():
                 is_continuous = len(feature_table[k]) == 0
                 if is_continuous:
-                    testing_x[i, j] = (testing_x[i, j] - training_x_mean[(0, j)]) / training_x_max_min[0, j]
+                    for p in feature_config[k]:
+                        testing_x[i, j + p - 1] = (testing_x[i, j + p - 1] - training_x_mean[(0, j + p - 1)]) / training_x_max_min[0, j + p - 1]
 
     return training_x, training_y, testing_x
