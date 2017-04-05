@@ -8,8 +8,8 @@ import sys
 feature_config = {
     "bias": [1],
     "age": [1, 2],
-    "fnlwgt": [],
-    "education-num": [],
+    "fnlwgt": [1, 2],
+    "education-num": [1, 2],
     "capital-gain": [1, 2],
     "capital-loss": [1, 2],
     "hours-per-week": [1, 2],
@@ -52,8 +52,10 @@ num_features = training_x.shape[1]
 weights = [0.0 for _ in range(num_features)]
 
 # Training parameters
-num_iterations = 1e6
+num_iterations = 1e4
 learning_rate = 1e1
+is_regularized = True
+lamda = 1e1
 
 print("========== Training ==========")
 t = 0
@@ -66,6 +68,10 @@ while t < num_iterations:
     y = sigmoid(training_x.dot(weights))
     loss = y - training_y
     gradient = training_x.transpose().dot(loss)
+    if is_regularized:
+        regularizer = lamda * np.sum(weights)
+        gradient += regularizer
+        loss += regularizer
     previous_gradient += np.square(gradient)
     weights -= learning_rate * gradient / np.sqrt(previous_gradient)
     if t % 100 == 0:
@@ -75,8 +81,11 @@ while t < num_iterations:
 print("========== Validating ==========")
 y = sigmoid(validating_x.dot(weights))
 loss = y - validating_y
+accuracy = 1.0 - np.sum(np.abs(
+    (y + 0.5) // 1 - validating_y)) / num_validating_data
 print("ERR: %f \tL: %f" % (err(loss) / float(num_validating_data),
                            cross_entropy(validating_y, y)))
+print("ACCURACY: %f%%" % (accuracy * 100))
 
 output_file_name = sys.argv[6]
 with open(output_file_name, "w") as output_file:
