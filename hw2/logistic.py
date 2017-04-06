@@ -8,8 +8,8 @@ import sys
 feature_config = {
     "bias": [1],
     "age": [1, 2],
-    "fnlwgt": [1, 2],
-    "education-num": [1, 2],
+    "fnlwgt": [],
+    "education-num": [],
     "capital-gain": [1, 2],
     "capital-loss": [1, 2],
     "hours-per-week": [1, 2],
@@ -22,11 +22,12 @@ feature_config = {
     "sex": [0],
     "native-country": [0],
 }
+is_normalized = True
 
 
 def sigmoid(z):
     sig = 1 / (1.0 + np.exp(-z))
-    return np.clip(sig, 0.00000000000001, 0.99999999999999)
+    return np.clip(sig, 1e-16, 1.0 - 1e-16)
 
 
 def err(loss):
@@ -34,12 +35,12 @@ def err(loss):
 
 
 def cross_entropy(y_hat, y):
-    return np.sum(-1 * y_hat.transpose().dot(np.log(sigmoid(y))) - (
-        1 - y_hat).transpose().dot(1 - np.log(sigmoid(y))))
+    return np.sum(-(y_hat.transpose().dot(np.log(y)) +
+                    (1 - y_hat).transpose().dot(np.log(1 - y))))
 
 
 training_x, training_y, testing_x = feature_extractor.extract_features(
-    sys.argv[1], sys.argv[2], feature_config, True)
+    sys.argv[1], sys.argv[2], feature_config, is_normalized)
 
 num_validating_data = training_x.shape[0] // 10
 validating_x = training_x[:num_validating_data]
@@ -55,7 +56,7 @@ weights = [0.0 for _ in range(num_features)]
 num_iterations = 1e4
 learning_rate = 1e1
 is_regularized = True
-lamda = 1e1
+lamda = 1e2
 
 print("========== Training ==========")
 t = 0
@@ -67,6 +68,8 @@ while t < num_iterations:
     t += 1
     y = sigmoid(training_x.dot(weights))
     loss = y - training_y
+    accuracy = 1.0 - np.sum(np.abs(
+        (y + 0.5) // 1 - training_y)) / float(num_training_data)
     gradient = training_x.transpose().dot(loss)
     if is_regularized:
         regularizer = lamda * np.sum(weights)
@@ -75,19 +78,34 @@ while t < num_iterations:
     previous_gradient += np.square(gradient)
     weights -= learning_rate * gradient / np.sqrt(previous_gradient)
     if t % 100 == 0:
-        print("ERR: %f \tL: %f" % (err(loss) / float(num_training_data),
-                                   cross_entropy(training_y, y)))
+        print("ERR: %f \tL: %f \tACCURACY: %f%%" %
+              (err(loss) / float(num_training_data),
+               cross_entropy(training_y, y), accuracy * 100))
 
+print("")
 print("========== Validating ==========")
 y = sigmoid(validating_x.dot(weights))
 loss = y - validating_y
 accuracy = 1.0 - np.sum(np.abs(
-    (y + 0.5) // 1 - validating_y)) / num_validating_data
-print("ERR: %f \tL: %f" % (err(loss) / float(num_validating_data),
-                           cross_entropy(validating_y, y)))
-print("ACCURACY: %f%%" % (accuracy * 100))
+    (y + 0.5) // 1 - validating_y)) / float(num_validating_data)
+print("ERR: %f \tL: %f \tACCURACY: %f%%" %
+      (err(loss) / float(num_validating_data), cross_entropy(validating_y, y),
+       accuracy * 100))
 
-output_file_name = sys.argv[6]
+print("")
+print("========== Summary ==========")
+print("Features used:")
+for k, v in feature_config.items():
+    print(" ", k, v)
+print("Normalization:", is_normalized)
+print("# of iterations:", num_iterations)
+print("Learning rate:", learning_rate)
+print("Regularization:", is_regularized)
+print("Lambda:", lamda)
+print("ACCURACY: %f%%" % (accuracy * 100))
+print("")
+
+output_file_name = sys.argv[3]
 with open(output_file_name, "w") as output_file:
     output_file.write("id,label\n")
     i = 0

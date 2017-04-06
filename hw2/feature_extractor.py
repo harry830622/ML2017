@@ -31,7 +31,7 @@ feature_table = {
         "State-gov",
         "Without-pay",
         "Never-worked",
-        # "?",
+        "?",
     ],
     "fnlwgt": [],
     "education": [
@@ -77,7 +77,7 @@ feature_table = {
         "Priv-house-serv",
         "Protective-serv",
         "Armed-Forces",
-        # "?",
+        "?",
     ],
     "relationship": [
         "Wife",
@@ -140,7 +140,7 @@ feature_table = {
         "Peru",
         "Hong",
         "Holand-Netherlands",
-        # "?",
+        "?",
     ],
 }
 
@@ -161,7 +161,9 @@ feature_idx = {
     "native-country": -1,
 }
 
-def extract_features(raw_training_file_name, raw_testing_file_name, feature_config, is_normalized):
+
+def extract_features(raw_training_file_name, raw_testing_file_name,
+                     feature_config, is_normalized):
     training_x = []
     training_y = []
     with open(raw_training_file_name, "r") as raw_training_file:
@@ -184,22 +186,24 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
                         subfeatures = feature_table[feature_name]
                         is_discrete = len(subfeatures) != 0
                         if is_discrete:
-                            subfeature_values = [ 0.0 for _ in range(len(subfeatures)) ]
+                            subfeature_values = [
+                                0.0 for _ in range(len(subfeatures))
+                            ]
                             for j, s in enumerate(subfeatures):
                                 if s == x:
                                     subfeature_values[j] = 1.0
-                            feature_values += subfeature_values;
+                            feature_values += subfeature_values
                             idx += len(subfeatures)
                         else:
                             for p in feature_config[feature_name]:
-                                feature_values.append(float(x) ** p)
+                                feature_values.append(float(x)**p)
                                 idx += 1
                 else:
                     training_y.append(1.0 if x == ">50K" else 0.0)
             training_x.append(feature_values)
 
-    training_x = np.matrix(training_x, dtype = np.float64)
-    training_y = np.matrix([training_y], dtype = np.float64).transpose()
+    training_x = np.matrix(training_x, dtype=np.float64)
+    training_y = np.matrix([training_y], dtype=np.float64).transpose()
 
     testing_x = []
     nth_row = 0
@@ -220,32 +224,40 @@ def extract_features(raw_training_file_name, raw_testing_file_name, feature_conf
                         subfeatures = feature_table[feature_name]
                         is_discrete = len(subfeatures) != 0
                         if is_discrete:
-                            subfeature_values = [ 0.0 for _ in range(len(subfeatures)) ]
+                            subfeature_values = [
+                                0.0 for _ in range(len(subfeatures))
+                            ]
                             for j, s in enumerate(subfeatures):
                                 if s == x:
                                     subfeature_values[j] = 1.0
-                            feature_values += subfeature_values;
+                            feature_values += subfeature_values
                         else:
                             for p in feature_config[feature_name]:
-                                feature_values.append(float(x) ** p)
+                                feature_values.append(float(x)**p)
                 testing_x.append(feature_values)
 
-    testing_x = np.matrix(testing_x, dtype = np.float64)
+    testing_x = np.matrix(testing_x, dtype=np.float64)
 
     if is_normalized:
-        training_x_mean = training_x.mean(axis = 0)
-        training_x_max_min = training_x.max(axis = 0) - training_x.min(axis = 0)
+        training_x_mean = training_x.mean(axis=0)
+        training_x_max_min = training_x.max(axis=0) - training_x.min(axis=0)
         for i, row in enumerate(training_x):
             for k, j in feature_idx.items():
                 is_continuous = len(feature_table[k]) == 0
                 if is_continuous:
                     for p in feature_config[k]:
-                        training_x[i, j + p - 1] = (training_x[i, j + p - 1] - training_x_mean[0, j + p - 1]) / training_x_max_min[0, j + p - 1]
+                        training_x[i, j + p - 1] = (
+                            training_x[i, j + p - 1] -
+                            training_x_mean[0, j + p - 1]
+                        ) / training_x_max_min[0, j + p - 1]
         for i, row in enumerate(testing_x):
             for k, j in feature_idx.items():
                 is_continuous = len(feature_table[k]) == 0
                 if is_continuous:
                     for p in feature_config[k]:
-                        testing_x[i, j + p - 1] = (testing_x[i, j + p - 1] - training_x_mean[(0, j + p - 1)]) / training_x_max_min[0, j + p - 1]
+                        testing_x[i, j + p - 1] = (
+                            testing_x[i, j + p - 1] - training_x_mean[(
+                                0,
+                                j + p - 1)]) / training_x_max_min[0, j + p - 1]
 
     return training_x, training_y, testing_x
