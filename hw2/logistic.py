@@ -59,7 +59,7 @@ if not is_model_existed:
     weights = [0.0 for _ in range(num_features)]
 
     # Training parameters
-    num_iterations = 1e4
+    num_iterations = 5e5
     learning_rate = 1e1
     is_regularized = True
     lamda = 1e2
