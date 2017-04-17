@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
-from keras.models import Sequential, model_from_json
-from keras.layers import Dense, Activation, Flatten, Conv2D, MaxPooling2D, Dropout
-
 import numpy as np
 import pickle
 import sys
 import os
+
+from keras import backend as K
+from keras.models import Sequential, model_from_json
+from keras.layers import Dense, Activation, Flatten, Dropout
+from keras.layers import Conv2D, ZeroPadding2D, MaxPooling2D
+from keras.callbacks import TensorBoard
+from keras.utils import plot_model
 
 model_file_name = "./model.p"
 is_model_existed = os.path.isfile(model_file_name)
@@ -16,6 +20,7 @@ x_test = []
 with open(x_test_file_name, "rb") as x_test_file:
     x_test = pickle.load(x_test_file)
 x_test = np.array(x_test, dtype=np.float64).reshape((len(x_test), 48, 48, 1))
+
 x_test /= 255
 
 if not is_model_existed:
@@ -37,13 +42,18 @@ if not is_model_existed:
 
     model = Sequential()
 
-    model.add(Conv2D(32, (3, 3), input_shape=(48, 48, 1)))
+    model.add(Conv2D(64, (3, 3), input_shape=(48, 48, 1)))
     model.add(Activation("relu"))
-
-    model.add(Conv2D(64, (3, 3)))
+    model.add(Conv2D(128, (3, 3)))
     model.add(Activation("relu"))
-
     model.add(MaxPooling2D((2, 2)))
+
+    model.add(Conv2D(64, (5, 5)))
+    model.add(Activation("relu"))
+    model.add(Conv2D(128, (5, 5)))
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D((2, 2)))
+
     model.add(Dropout(0.25))
 
     model.add(Flatten())
@@ -62,7 +72,12 @@ if not is_model_existed:
         metrics=["accuracy"])
 
     model.fit(
-        x_train, y_train, batch_size=128, epochs=12, validation_split=0.1)
+        x_train,
+        y_train,
+        batch_size=128,
+        epochs=20,
+        validation_split=0.1,
+        callbacks=[TensorBoard()])
 
     m = {}
     m["config"] = model.to_json()
@@ -76,6 +91,8 @@ else:
         model.set_weights(m["weights"])
 
 model.summary()
+
+# plot_model(model, to_file="model.png")
 
 y_test = model.predict_classes(x_test)
 
