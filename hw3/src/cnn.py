@@ -10,7 +10,7 @@ from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.layers import Conv2D, MaxPooling2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import TensorBoard
-from keras.utils import to_categorical, plot_model
+from keras.utils import to_categorical
 
 training_x_file_name = sys.argv[1]
 training_y_file_name = sys.argv[2]
@@ -51,26 +51,18 @@ model = Sequential()
 
 model.add(
     Conv2D(
-        32, (3, 3),
-        activation='relu',
-        padding='same',
-        name='block1_conv1',
-        input_shape=(48, 48, 1)))
-model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool'))
+        32, (3, 3), activation='relu', padding='same', input_shape=(48, 48, 1
+                                                                    )))
+model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
-model.add(
-    Conv2D(64, (3, 3), activation='relu', padding='same', name='block2_conv1'))
-model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool'))
+model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
-model.add(
-    Conv2D(
-        128, (3, 3), activation='relu', padding='same', name='block3_conv1'))
-model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool'))
+model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
-model.add(
-    Conv2D(
-        256, (3, 3), activation='relu', padding='same', name='block4_conv1'))
-model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool'))
+model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
+model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
 model.add(Flatten())
 
@@ -87,8 +79,6 @@ model.compile(
     optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
 
 model.summary()
-
-# plot_model(model, to_file="model.png")
 
 batch_size = 256
 model.fit_generator(

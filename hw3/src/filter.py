@@ -22,7 +22,6 @@ img_width = 48
 img_height = 48
 
 # the name of the layer we want to visualize
-# (see model definition at keras/applications/vgg16.py)
 layer_name = "conv2d_4"
 
 # util function to convert a tensor into a valid image
