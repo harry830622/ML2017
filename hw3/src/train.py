@@ -8,6 +8,7 @@ from keras import backend as K
 from keras.models import Sequential, model_from_json
 from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.layers import Conv2D, MaxPooling2D
+from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import TensorBoard
 from keras.utils import to_categorical, plot_model
 
@@ -30,53 +31,71 @@ training_x = np.array(
     training_x, dtype=np.float64).reshape((len(training_x), 48, 48, 1))
 training_y = np.array(training_y, dtype=np.float64)
 
-training_x = np.concatenate((training_x, np.fliplr(training_x)))
 training_x /= 255
-training_y = np.tile(training_y, (2, 1))
+
+num_validating_x = training_x.shape[0] // 10
+validating_x = training_x[:num_validating_x]
+training_x = training_x[:-num_validating_x]
+validating_y = training_y[:num_validating_x]
+training_y = training_y[:-num_validating_x]
+
+train_datagen = ImageDataGenerator(
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    horizontal_flip=True)
+
+train_datagen.fit(training_x)
 
 model = Sequential()
 
-model.add(Conv2D(32, (3, 3), input_shape=(48, 48, 1)))
-model.add(Activation("relu"))
+model.add(
+    Conv2D(
+        32, (3, 3),
+        activation='relu',
+        padding='same',
+        name='block1_conv1',
+        input_shape=(48, 48, 1)))
+model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool'))
 
-model.add(Conv2D(64, (3, 3)))
-model.add(Activation("relu"))
+model.add(
+    Conv2D(64, (3, 3), activation='relu', padding='same', name='block2_conv1'))
+model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool'))
 
-model.add(MaxPooling2D((2, 2)))
+model.add(
+    Conv2D(
+        128, (3, 3), activation='relu', padding='same', name='block3_conv1'))
+model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool'))
 
-model.add(Dropout(0.25))
-
-# model.add(Conv2D(32, (5, 5)))
-# model.add(Activation("relu"))
-
-# model.add(Conv2D(64, (5, 5)))
-# model.add(Activation("relu"))
-
-# model.add(Dropout(0.25))
+model.add(
+    Conv2D(
+        256, (3, 3), activation='relu', padding='same', name='block4_conv1'))
+model.add(MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool'))
 
 model.add(Flatten())
 
-model.add(Dense(128))
-model.add(Activation("relu"))
+model.add(Dense(1024, activation='relu'))
+model.add(Dropout(0.5))
 
+model.add(Dense(1024, activation='relu'))
 model.add(Dropout(0.5))
 
 model.add(Dense(num_classes))
 model.add(Activation("softmax"))
 
 model.compile(
-    optimizer="Nadam", loss="categorical_crossentropy", metrics=["accuracy"])
+    optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
 
 model.summary()
 
 # plot_model(model, to_file="model.png")
 
-model.fit(
-    training_x,
-    training_y,
-    batch_size=128,
-    epochs=20,
-    validation_split=0.1,
+batch_size = 256
+model.fit_generator(
+    train_datagen.flow(training_x, training_y, batch_size=batch_size),
+    steps_per_epoch=1000,
+    validation_data=(validating_x, validating_y),
+    epochs=30,
     callbacks=[TensorBoard()])
 
 with open(model_file_name, "wb") as model_file:
