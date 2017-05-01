@@ -45,8 +45,6 @@ train_datagen = ImageDataGenerator(
     height_shift_range=0.2,
     horizontal_flip=True)
 
-train_datagen.fit(training_x)
-
 model = Sequential()
 
 model.add(
