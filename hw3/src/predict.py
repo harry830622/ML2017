@@ -4,8 +4,7 @@ import numpy as np
 import pickle
 import sys
 
-from keras import backend as K
-from keras.models import Sequential, model_from_json
+from keras.models import load_model
 
 testing_x_file_name = sys.argv[1]
 output_file_name = sys.argv[2]
@@ -19,10 +18,7 @@ testing_x = np.array(
 
 testing_x /= 255
 
-with open(model_file_name, "rb") as model_file:
-    m = pickle.load(model_file)
-    model = model_from_json(m["config"])
-    model.set_weights(m["weights"])
+model = load_model(model_file_name)
 
 model.summary()
 

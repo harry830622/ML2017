@@ -42,7 +42,7 @@ training_x /= 255
 testing_x /= 255
 
 shuffle_index = np.arange(len(training_x))
-np.random.seed(3103)
+np.random.seed(19940622)
 np.random.shuffle(shuffle_index)
 training_x = training_x[shuffle_index]
 training_y = training_y[shuffle_index]
@@ -97,10 +97,43 @@ model.compile(
 
 model.summary()
 
-i = 0
-while i < num_testing_xs * 0.7:
-    batch_size = 256
-    history = model.fit_generator(
+history = {"acc": [], "val_acc": [], "loss": [], "val_loss": []}
+
+batch_size = 256
+
+tmp_history = model.fit_generator(
+    train_datagen.flow(training_x, training_y, batch_size=batch_size),
+    steps_per_epoch=1000,
+    validation_data=(validating_x, validating_y),
+    epochs=50,
+    callbacks=[EarlyStopping(monitor="val_loss", patience=2), TensorBoard()])
+
+history["acc"] += tmp_history.history["acc"]
+history["val_acc"] += tmp_history.history["val_acc"]
+history["loss"] += tmp_history.history["loss"]
+history["val_loss"] += tmp_history.history["val_loss"]
+
+num_new_training_xs = 0
+nth_iteration = 0
+while num_new_training_xs < num_testing_xs * 0.7:
+    nth_iteration += 1
+
+    predicted_y = model.predict(testing_x)
+
+    thresh = 0.8
+    for i, ys in enumerate(predicted_y):
+        predicted_classes = list(map(lambda y: y >= thresh, ys))
+        if any(predicted_classes):
+            training_x = np.concatenate((training_x, [testing_x[i]]))
+            training_y = np.concatenate(
+                (training_y,
+                 [list(map(lambda y: 1 if y else 0, predicted_classes))]))
+            num_new_training_xs += 1
+
+    print("{:d} nth self-training, {:d} test labels".format(
+        nth_iteration, num_new_training_xs))
+
+    tmp_history = model.fit_generator(
         train_datagen.flow(training_x, training_y, batch_size=batch_size),
         steps_per_epoch=1000,
         validation_data=(validating_x, validating_y),
@@ -109,22 +142,14 @@ while i < num_testing_xs * 0.7:
             EarlyStopping(monitor="val_loss", patience=2), TensorBoard()
         ])
 
-    testing_y = model.predict(testing_x)
-
-    thresh = 0.7
-    for i, xs in enumerate(testing_y):
-        predicted_class = [j for j, x in enumerate(xs) if x >= thresh]
-        if len(predicted_class) > 0:
-            y = predicted_class[0]
-            training_x = np.append(training_x, [testing_x[i]], axis=0)
-            training_y = np.append(
-                training_y, [[1 if j == y else 0 for j in range(num_classes)]],
-                axis=0)
-            i += 1
+    history["acc"] += tmp_history.history["acc"]
+    history["val_acc"] += tmp_history.history["val_acc"]
+    history["loss"] += tmp_history.history["loss"]
+    history["val_loss"] += tmp_history.history["val_loss"]
 
 model.save(model_file_name)
 
 if len(sys.argv) > 5:
     dump_file_name = sys.argv[5]
     with open(dump_file_name, "wb") as dump_file:
-        pickle.dump({"history": history.history}, dump_file)
+        pickle.dump({"history": history}, dump_file)

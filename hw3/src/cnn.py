@@ -34,7 +34,7 @@ training_y = np.array(training_y, dtype=np.float64)
 training_x /= 255
 
 shuffle_index = np.arange(len(training_x))
-np.random.seed(3103)
+np.random.seed(19940622)
 np.random.shuffle(shuffle_index)
 training_x = training_x[shuffle_index]
 training_y = training_y[shuffle_index]
