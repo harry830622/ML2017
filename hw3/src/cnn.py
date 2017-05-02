@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import numpy as np
 import pickle
@@ -9,7 +9,7 @@ from keras.models import Sequential, model_from_json
 from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.layers import Conv2D, MaxPooling2D
 from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import TensorBoard
+from keras.callbacks import EarlyStopping, TensorBoard
 from keras.utils import to_categorical
 
 training_x_file_name = sys.argv[1]
@@ -79,15 +79,20 @@ model.compile(
 model.summary()
 
 batch_size = 256
-model.fit_generator(
+history = model.fit_generator(
     train_datagen.flow(training_x, training_y, batch_size=batch_size),
     steps_per_epoch=1000,
     validation_data=(validating_x, validating_y),
-    epochs=30,
-    callbacks=[TensorBoard()])
+    epochs=50,
+    callbacks=[
+        EarlyStopping(
+            monitor="val_loss", min_delta=0.01, patience=3, verbose=1),
+        TensorBoard()
+    ])
 
 with open(model_file_name, "wb") as model_file:
     pickle.dump({
         "config": model.to_json(),
-        "weights": model.get_weights()
+        "weights": model.get_weights(),
+        "history": history.history
     }, model_file)
