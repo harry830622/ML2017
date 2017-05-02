@@ -5,7 +5,7 @@ import pickle
 import sys
 
 from keras import backend as K
-from keras.models import Sequential, model_from_json
+from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.layers import Conv2D, MaxPooling2D
 from keras.preprocessing.image import ImageDataGenerator
@@ -35,39 +35,42 @@ training_x /= 255
 
 num_validating_x = training_x.shape[0] // 10
 validating_x = training_x[:num_validating_x]
-training_x = training_x[:-num_validating_x]
+training_x = training_x[num_validating_x:]
 validating_y = training_y[:num_validating_x]
-training_y = training_y[:-num_validating_x]
+training_y = training_y[num_validating_x:]
 
 train_datagen = ImageDataGenerator(
-    rotation_range=20,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
+    rotation_range=10,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.2,
     horizontal_flip=True)
 
 model = Sequential()
 
-model.add(
-    Conv2D(
-        32, (3, 3), activation='relu', padding='same', input_shape=(48, 48, 1
-                                                                    )))
-model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+model.add(Conv2D(32, (3, 3), input_shape=(48, 48, 1)))
+model.add(Activation("relu"))
 
-model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+model.add(Conv2D(64, (3, 3)))
+model.add(Activation("relu"))
+model.add(MaxPooling2D((2, 2)))
 
-model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
-model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+model.add(Conv2D(128, (3, 3)))
+model.add(Activation("relu"))
+model.add(MaxPooling2D((2, 2)))
 
-model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
-model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+model.add(Conv2D(256, (3, 3)))
+model.add(Activation("relu"))
+model.add(MaxPooling2D((2, 2)))
 
 model.add(Flatten())
 
-model.add(Dense(1024, activation='relu'))
+model.add(Dense(1024))
+model.add(Activation("relu"))
 model.add(Dropout(0.5))
 
-model.add(Dense(1024, activation='relu'))
+model.add(Dense(1024))
+model.add(Activation("relu"))
 model.add(Dropout(0.5))
 
 model.add(Dense(num_classes))
@@ -84,15 +87,11 @@ history = model.fit_generator(
     steps_per_epoch=1000,
     validation_data=(validating_x, validating_y),
     epochs=50,
-    callbacks=[
-        EarlyStopping(
-            monitor="val_loss", min_delta=0.01, patience=3, verbose=1),
-        TensorBoard()
-    ])
+    callbacks=[EarlyStopping(monitor="val_loss", patience=3), TensorBoard()])
 
-with open(model_file_name, "wb") as model_file:
-    pickle.dump({
-        "config": model.to_json(),
-        "weights": model.get_weights(),
-        "history": history.history
-    }, model_file)
+model.save(model_file_name)
+
+if sys.argv.length > 4:
+    dump_file_name = sys.argv[4]
+    with open(dump_file_name, "wb") as dump_file:
+        pickle.dump({"history": history["history"]}, dump_file)
