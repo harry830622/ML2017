@@ -79,7 +79,7 @@ history = model.fit_generator(
 
 model.save(model_file_name)
 
-if sys.argv.length > 4:
+if len(sys.argv) > 4:
     dump_file_name = sys.argv[4]
     with open(dump_file_name, "wb") as dump_file:
-        pickle.dump({"history": history["history"]}, dump_file)
+        pickle.dump({"history": history.history}, dump_file)

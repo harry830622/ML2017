@@ -33,6 +33,12 @@ training_y = np.array(training_y, dtype=np.float64)
 
 training_x /= 255
 
+shuffle_index = np.arange(len(training_x))
+np.random.seed(3103)
+np.random.shuffle(shuffle_index)
+training_x = training_x[shuffle_index]
+training_y = training_y[shuffle_index]
+
 num_validating_x = training_x.shape[0] // 10
 validating_x = training_x[:num_validating_x]
 training_x = training_x[num_validating_x:]
@@ -91,7 +97,7 @@ history = model.fit_generator(
 
 model.save(model_file_name)
 
-if sys.argv.length > 4:
+if len(sys.argv) > 4:
     dump_file_name = sys.argv[4]
     with open(dump_file_name, "wb") as dump_file:
-        pickle.dump({"history": history["history"]}, dump_file)
+        pickle.dump({"history": history.history}, dump_file)

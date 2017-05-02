@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import numpy as np
 import pickle
@@ -11,7 +11,6 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping, TensorBoard
 from keras.utils import to_categorical
-
 
 training_x_file_name = sys.argv[1]
 training_y_file_name = sys.argv[2]
@@ -41,6 +40,12 @@ testing_x = np.array(
 
 training_x /= 255
 testing_x /= 255
+
+shuffle_index = np.arange(len(training_x))
+np.random.seed(3103)
+np.random.shuffle(shuffle_index)
+training_x = training_x[shuffle_index]
+training_y = training_y[shuffle_index]
 
 num_validating_x = training_x.shape[0] // 10
 validating_x = training_x[:num_validating_x]
@@ -101,7 +106,7 @@ while i < num_testing_xs * 0.7:
         validation_data=(validating_x, validating_y),
         epochs=50,
         callbacks=[
-            EarlyStopping(monitor="val_loss", patience=3), TensorBoard()
+            EarlyStopping(monitor="val_loss", patience=2), TensorBoard()
         ])
 
     testing_y = model.predict(testing_x)
@@ -109,7 +114,7 @@ while i < num_testing_xs * 0.7:
     thresh = 0.7
     for i, xs in enumerate(testing_y):
         predicted_class = [j for j, x in enumerate(xs) if x >= thresh]
-        if predicted_class.length > 0:
+        if len(predicted_class) > 0:
             y = predicted_class[0]
             training_x = np.append(training_x, [testing_x[i]], axis=0)
             training_y = np.append(
@@ -119,7 +124,7 @@ while i < num_testing_xs * 0.7:
 
 model.save(model_file_name)
 
-if sys.argv.length > 5:
+if len(sys.argv) > 5:
     dump_file_name = sys.argv[5]
     with open(dump_file_name, "wb") as dump_file:
-        pickle.dump({"history": history["history"]}, dump_file)
+        pickle.dump({"history": history.history}, dump_file)
