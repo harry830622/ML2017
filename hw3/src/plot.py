@@ -98,7 +98,7 @@ plot_confusion_matrix(cnf_matrix, classes=classes)
 plt.savefig("{}_confusion_matrix.png".format(prefix))
 plt.close()
 
-img_ids = range(200, 210)
+img_ids = range(290, 300)
 num_imgs = len(img_ids)
 plt.figure(figsize=(8, num_imgs * 2))
 input_img = model.input
@@ -114,9 +114,9 @@ for nth, i in enumerate(img_ids):
     heatmap = heatmap / np.max(heatmap)
 
     see = validating_x[i].reshape((48, 48))
-    thresh = np.mean(see)
+    thresh = 0.2
     img = see * 255
-    see[np.where(heatmap <= thresh)] = thresh
+    see[np.where(heatmap <= thresh)] = np.mean(see)
     see *= 255
 
     print(nth, classes[y])
