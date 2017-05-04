@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from extract import extract_training_data
+
 import numpy as np
 import pickle
 import sys
@@ -41,26 +43,19 @@ def plot_confusion_matrix(cm,
     plt.xlabel('Predicted label')
 
 
-training_x_file_name = sys.argv[1]
-training_y_file_name = sys.argv[2]
-model_file_name = sys.argv[3]
-dump_file_name = sys.argv[4]
-prefix = sys.argv[5]
-
-model = load_model(model_file_name)
+training_file_name = sys.argv[1]
+model_file_name = sys.argv[2]
+dump_file_name = sys.argv[3]
+prefix = sys.argv[4]
 
 with open(dump_file_name, "rb") as dump_file:
     m = pickle.load(dump_file)
     history = m["history"]
 
-training_x = []
-with open(training_x_file_name, "rb") as training_x_file:
-    training_x = pickle.load(training_x_file)
+model = load_model(model_file_name)
+model.summary()
 
-training_y = []
-with open(training_y_file_name, "rb") as training_y_file:
-    training_y = pickle.load(training_y_file)
-
+training_x, training_y = extract_training_data(training_file_name)
 training_x = np.array(
     training_x, dtype=np.float64).reshape((len(training_x), 48, 48, 1))
 training_y = np.array(training_y, dtype=np.float64)
@@ -76,8 +71,6 @@ training_y = training_y[shuffle_index]
 num_validating_x = training_x.shape[0] // 10
 validating_x = training_x[:num_validating_x]
 validating_y = training_y[:num_validating_x]
-
-model.summary()
 
 plot_model(model, "{}_structure.png".format(prefix))
 

@@ -1,36 +1,25 @@
 #!/usr/bin/env python3
 
+from extract import extract_training_data, extract_testing_data
+
 import numpy as np
 import pickle
 import sys
 
-from keras import backend as K
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout
-from keras.layers import Conv2D, MaxPooling2D
+from keras.models import load_model
 from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import EarlyStopping, TensorBoard
+from keras.callbacks import EarlyStopping
 from keras.utils import to_categorical
 
-training_x_file_name = sys.argv[1]
-training_y_file_name = sys.argv[2]
-testing_x_file_name = sys.argv[3]
-model_file_name = sys.argv[4]
+training_file_name = sys.argv[1]
+testing_file_name = sys.argv[2]
+model_file_name = sys.argv[3]
 
 num_classes = 7
 
-training_x = []
-with open(training_x_file_name, "rb") as training_x_file:
-    training_x = pickle.load(training_x_file)
-
-training_y = []
-with open(training_y_file_name, "rb") as training_y_file:
-    training_y = pickle.load(training_y_file)
+training_x, training_y = extract_training_data(training_file_name)
 training_y = to_categorical(training_y, num_classes=num_classes)
-
-testing_x = []
-with open(testing_x_file_name, "rb") as testing_x_file:
-    testing_x = pickle.load(testing_x_file)
+testing_x = extract_testing_data(testing_file_name)
 
 training_x = np.array(
     training_x, dtype=np.float64).reshape((len(training_x), 48, 48, 1))
@@ -62,56 +51,12 @@ train_datagen = ImageDataGenerator(
 
 num_testing_xs = testing_x.shape[0]
 
-model = Sequential()
-
-model.add(Conv2D(32, (3, 3), input_shape=(48, 48, 1)))
-model.add(Activation("relu"))
-
-model.add(Conv2D(64, (3, 3)))
-model.add(Activation("relu"))
-model.add(MaxPooling2D((2, 2)))
-
-model.add(Conv2D(128, (3, 3)))
-model.add(Activation("relu"))
-model.add(MaxPooling2D((2, 2)))
-
-model.add(Conv2D(256, (3, 3)))
-model.add(Activation("relu"))
-model.add(MaxPooling2D((2, 2)))
-
-model.add(Flatten())
-
-model.add(Dense(1024))
-model.add(Activation("relu"))
-model.add(Dropout(0.5))
-
-model.add(Dense(1024))
-model.add(Activation("relu"))
-model.add(Dropout(0.5))
-
-model.add(Dense(num_classes))
-model.add(Activation("softmax"))
-
-model.compile(
-    optimizer="Adam", loss="categorical_crossentropy", metrics=["accuracy"])
-
+model = load_model(model_file_name)
 model.summary()
 
 history = {"acc": [], "val_acc": [], "loss": [], "val_loss": []}
 
 batch_size = 256
-
-tmp_history = model.fit_generator(
-    train_datagen.flow(training_x, training_y, batch_size=batch_size),
-    steps_per_epoch=1000,
-    validation_data=(validating_x, validating_y),
-    epochs=50,
-    callbacks=[EarlyStopping(monitor="val_loss", patience=2), TensorBoard()])
-
-history["acc"] += tmp_history.history["acc"]
-history["val_acc"] += tmp_history.history["val_acc"]
-history["loss"] += tmp_history.history["loss"]
-history["val_loss"] += tmp_history.history["val_loss"]
 
 num_new_training_xs = 0
 nth_iteration = 0
@@ -138,9 +83,7 @@ while num_new_training_xs < num_testing_xs * 0.7:
         steps_per_epoch=1000,
         validation_data=(validating_x, validating_y),
         epochs=50,
-        callbacks=[
-            EarlyStopping(monitor="val_loss", patience=2), TensorBoard()
-        ])
+        callbacks=[EarlyStopping(monitor="val_loss", patience=2)])
 
     history["acc"] += tmp_history.history["acc"]
     history["val_acc"] += tmp_history.history["val_acc"]
@@ -149,7 +92,7 @@ while num_new_training_xs < num_testing_xs * 0.7:
 
 model.save(model_file_name)
 
-if len(sys.argv) > 5:
-    dump_file_name = sys.argv[5]
+if len(sys.argv) > 4:
+    dump_file_name = sys.argv[4]
     with open(dump_file_name, "wb") as dump_file:
         pickle.dump({"history": history}, dump_file)
