@@ -8,12 +8,10 @@ from PIL import Image
 import os
 
 
-def pca(a, num_of_pcs):
+def pca(a):
     m = a - np.mean(a, axis=0)
-    u, s, v = np.linalg.svd(m)
-    scores = np.dot(u[:, :num_of_pcs], np.diag(s)[:num_of_pcs, :num_of_pcs])
-    pcs = v[:num_of_pcs, :]
-    return scores, pcs
+    _, _, v = np.linalg.svd(m)
+    return v
 
 
 def reconstruct(a, eigen_v):
@@ -39,7 +37,7 @@ for i in range(10):
         faces.append(face)
 faces = np.array(faces)
 
-_, eigen_faces = pca(faces, 10)
+eigen_faces = pca(faces)
 
 plt.figure()
 for i in range(9):
@@ -50,15 +48,16 @@ plt.savefig("eigen_faces.png")
 plt.close()
 
 faces = []
-for i in range(4):
-    for j in range(25):
+for i in range(10):
+    for j in range(10):
         bmp_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
         face_img = Image.open(os.path.join(faces_dir, bmp_file_name))
         face = np.array(face_img).flatten()
         faces.append(face)
 faces = np.array(faces)
 
-reconstructed_faces = reconstruct(faces, eigen_faces[:5])
+num_pcs = 5
+reconstructed_faces = reconstruct(faces, eigen_faces[:num_pcs])
 
 plt.figure()
 for i in range(100):
@@ -68,5 +67,22 @@ for i in range(100):
     plt.subplot(10, 20, i * 2 + 2)
     plt.axis("off")
     plt.imshow(reconstructed_faces[i].reshape(64, 64), cmap="gray")
-plt.savefig("reconstructed_faces.png")
+plt.savefig("reconstructed_faces_{:d}.png".format(num_pcs))
 plt.close()
+
+faces = []
+for i in range(10):
+    for j in range(10):
+        bmp_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
+        face_img = Image.open(os.path.join(faces_dir, bmp_file_name))
+        face = np.array(face_img).flatten()
+        faces.append(face)
+faces = np.array(faces)
+
+for num_pcs in range(1, 101):
+    reconstructed_faces = reconstruct(faces, eigen_faces[:num_pcs])
+
+    rmse = (np.mean(((reconstructed_faces - faces) / 255)**2))**0.5
+    print("# of pcs: {:d} RMSE: {:4.2f}%".format(num_pcs, rmse * 100))
+    if rmse < 0.01:
+        break
