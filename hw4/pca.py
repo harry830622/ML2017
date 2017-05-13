@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from PIL import Image
 
+import sys
 import os
 
 
@@ -21,7 +22,7 @@ def reconstruct(a, eigen_v):
     return reconstructed_a
 
 
-faces_dir = os.path.join(os.path.expanduser("~"), "Downloads/face")
+faces_dir = sys.argv[1]
 bmp_file_names = [
     file_name for file_name in os.listdir(faces_dir)
     if file_name.endswith(".bmp")
@@ -37,14 +38,16 @@ for i in range(10):
         faces.append(face)
 faces = np.array(faces)
 
-eigen_faces = pca(faces)
+eigenfaces = pca(faces)
 
 plt.figure()
 for i in range(9):
-    plt.subplot(331 + i)
+    plt.subplot(3, 3, i + 1)
     plt.axis("off")
-    plt.imshow(eigen_faces[i].reshape(64, 64), cmap="gray")
-plt.savefig("eigen_faces.png")
+    plt.imshow(eigenfaces[i].reshape(64, 64), cmap="gray")
+plt.subplots_adjust(wspace=0.2, hspace=0.2)
+plt.suptitle("eigenfaces")
+plt.savefig("eigenfaces.png")
 plt.close()
 
 faces = []
@@ -57,16 +60,25 @@ for i in range(10):
 faces = np.array(faces)
 
 num_pcs = 5
-reconstructed_faces = reconstruct(faces, eigen_faces[:num_pcs])
+reconstructed_faces = reconstruct(faces, eigenfaces[:num_pcs])
 
 plt.figure()
 for i in range(100):
-    plt.subplot(10, 20, i * 2 + 1)
+    plt.subplot(10, 10, i + 1)
     plt.axis("off")
     plt.imshow(faces[i].reshape(64, 64), cmap="gray")
-    plt.subplot(10, 20, i * 2 + 2)
+plt.subplots_adjust(wspace=0.2, hspace=0.2)
+plt.suptitle("original faces")
+plt.savefig("original_faces.png")
+plt.close()
+
+plt.figure()
+for i in range(100):
+    plt.subplot(10, 10, i + 1)
     plt.axis("off")
     plt.imshow(reconstructed_faces[i].reshape(64, 64), cmap="gray")
+plt.subplots_adjust(wspace=0.2, hspace=0.2)
+plt.suptitle("reconstructed faces")
 plt.savefig("reconstructed_faces_{:d}.png".format(num_pcs))
 plt.close()
 
@@ -80,7 +92,7 @@ for i in range(10):
 faces = np.array(faces)
 
 for num_pcs in range(1, 101):
-    reconstructed_faces = reconstruct(faces, eigen_faces[:num_pcs])
+    reconstructed_faces = reconstruct(faces, eigenfaces[:num_pcs])
 
     rmse = (np.mean(((reconstructed_faces - faces) / 255)**2))**0.5
     print("# of pcs: {:d} RMSE: {:4.2f}%".format(num_pcs, rmse * 100))
