@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+from gen import get_eigenvalues
+
 import numpy as np
 
 from sklearn.svm import LinearSVR as SVR
-from gen import get_eigenvalues
 
 import sys
 import pickle
