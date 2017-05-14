@@ -59,20 +59,21 @@ def get_eigenvalues(data):
     return sing_vals
 
 
-np.random.seed(19940622)
+if __name__ == "__main__":
+    np.random.seed(19940622)
 
-X = []
-y = []
-for i in range(60):
-    dim = i + 1
-    for N in [10000, 20000, 50000, 80000, 100000]:
-        layer_dims = [np.random.randint(60, 80), 100]
-        data = gen_data(dim, layer_dims, N).astype("float32")
-        eigenvalues = get_eigenvalues(data)
-        X.append(eigenvalues)
-        y.append(dim)
+    X = []
+    y = []
+    for i in range(60):
+        dim = i + 1
+        for N in [10000, 20000, 50000, 80000, 100000]:
+            layer_dims = [np.random.randint(60, 80), 100]
+            data = gen_data(dim, layer_dims, N).astype("float32")
+            eigenvalues = get_eigenvalues(data)
+            X.append(eigenvalues)
+            y.append(dim)
 
-X = np.array(X)
-y = np.array(y)
+    X = np.array(X)
+    y = np.array(y)
 
-np.savez(sys.argv[1], X=X, y=y)
+    np.savez(sys.argv[1], X=X, y=y)

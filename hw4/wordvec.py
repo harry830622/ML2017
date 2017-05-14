@@ -16,7 +16,7 @@ phrase_file_name = "text_phrases.bin"
 word2vec.word2phrase(txt, phrase_file_name, verbose=True)
 
 model_file_name = "text.bin"
-word2vec.word2vec(phrase_file_name, model_file_name, verbose=True)
+word2vec.word2vec(phrase_file_name, model_file_name, verbose=True, cbow=1)
 
 model = word2vec.load(model_file_name)
 

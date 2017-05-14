@@ -16,4 +16,4 @@ svr = SVR(C=50)
 svr.fit(X, y)
 
 with open("model", "wb") as model_file:
-    pickle.dump(svr.get_params(), model_file)
+    pickle.dump(svr, model_file)
