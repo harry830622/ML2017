@@ -10,7 +10,7 @@ import pickle
 
 np.random.seed(19940622)
 
-with open("model", "rb") as model_file:
+with open("model.p", "rb") as model_file:
     svr = pickle.load(model_file)
 
 test_data = np.load(sys.argv[1])
