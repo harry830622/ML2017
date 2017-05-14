@@ -38,6 +38,15 @@ for i in range(10):
         faces.append(face)
 faces = np.array(faces)
 
+average_face = np.mean(faces, axis=0)
+
+plt.figure()
+plt.axis("off")
+plt.imshow(average_face.reshape(64, 64), cmap="gray")
+plt.suptitle("average face")
+plt.savefig("average_face.png")
+plt.close()
+
 eigenfaces = pca(faces)
 
 plt.figure()
