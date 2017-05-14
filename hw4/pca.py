@@ -23,17 +23,12 @@ def reconstruct(a, eigen_v):
 
 
 faces_dir = sys.argv[1]
-bmp_file_names = [
-    file_name for file_name in os.listdir(faces_dir)
-    if file_name.endswith(".bmp")
-]
-bmp_file_names.sort()
 
 faces = []
 for i in range(10):
     for j in range(10):
-        bmp_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
-        face_img = Image.open(os.path.join(faces_dir, bmp_file_name))
+        img_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
+        face_img = Image.open(os.path.join(faces_dir, img_file_name))
         face = np.array(face_img).flatten()
         faces.append(face)
 faces = np.array(faces)
@@ -62,8 +57,8 @@ plt.close()
 faces = []
 for i in range(10):
     for j in range(10):
-        bmp_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
-        face_img = Image.open(os.path.join(faces_dir, bmp_file_name))
+        img_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
+        face_img = Image.open(os.path.join(faces_dir, img_file_name))
         face = np.array(face_img).flatten()
         faces.append(face)
 faces = np.array(faces)
@@ -94,8 +89,8 @@ plt.close()
 faces = []
 for i in range(10):
     for j in range(10):
-        bmp_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
-        face_img = Image.open(os.path.join(faces_dir, bmp_file_name))
+        img_file_name = "{}{:02d}.bmp".format(chr(ord("A") + i), j)
+        face_img = Image.open(os.path.join(faces_dir, img_file_name))
         face = np.array(face_img).flatten()
         faces.append(face)
 faces = np.array(faces)
