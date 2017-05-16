@@ -39,8 +39,9 @@ with open(raw_testing_file_name, "r") as raw_testing_file:
 
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(all_text)
+word_index = tokenizer.word_index
 sequences = tokenizer.texts_to_sequences(all_text)
-sequences = pad_sequences(sequences)
+sequences = pad_sequences(sequences, padding="post")
 
 num_training_sequences = len(raw_training_y)
 num_classes = len(classes)  # 38
@@ -53,6 +54,8 @@ with open(training_file_name, "wb") as training_file:
     pickle.dump({
         "training_sequences": sequences[:num_training_sequences],
         "testing_sequences": sequences[num_training_sequences:],
+        "word_index": word_index,
+        "classes": classes,
         "training_y": training_y
     }, training_file)
 
