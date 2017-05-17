@@ -5,7 +5,9 @@ from metrics import precision, recall, fmeasure
 import numpy as np
 
 from keras.models import Model
-from keras.layers import Input, Embedding, LSTM, GRU, Dense
+from keras.layers import Input, Embedding, Dense, Dropout
+from keras.layers import LSTM, Bidirectional
+from keras.layers import Conv1D, MaxPooling1D, Flatten
 
 import sys
 import pickle
@@ -64,24 +66,30 @@ embedding_layer = Embedding(
 
 sequence_input = Input(shape=(sequence_length, ))
 embedded_sequence = embedding_layer(sequence_input)
-x = LSTM(32, return_sequences=False)(embedded_sequence)
-x = Dense(64, activation="relu")(x)
+# x = Bidirectional(LSTM(64, return_sequences=False))(embedded_sequence)
+x = Conv1D(32, 5, activation="relu")(embedded_sequence)
+x = MaxPooling1D(2)(x)
+x = Conv1D(64, 5, activation="relu")(x)
+x = MaxPooling1D(2)(x)
+x = Flatten()(x)
+x = Dropout(0.5)(x)
+x = Dense(1024, activation="relu")(x)
+x = Dropout(0.5)(x)
+x = Dense(1024, activation="relu")(x)
+x = Dropout(0.5)(x)
 prediction = Dense(num_classes, activation="sigmoid")(x)
 
 model = Model(sequence_input, prediction)
 
 model.summary()
 
-model.compile(
-    optimizer="adam",
-    loss="binary_crossentropy",
-    metrics=["accuracy", precision, recall, fmeasure])
+model.compile(optimizer="adam", loss="binary_crossentropy", metrics=[fmeasure])
 
 model.fit(
     training_x,
     training_y,
     batch_size=128,
-    epochs=3,
+    epochs=100,
     validation_data=(validating_x, validating_y))
 
 testing_x = np.array(training_data["testing_sequences"])
@@ -91,8 +99,10 @@ with open("predicted.csv", "w") as predicted_csv:
     predicted_csv.write("\"id\",\"tags\"\n")
     i = 0
     for y in predicted_y:
-        print(y)
-        print(classes[np.argwhere(y > 0.1).flatten()])
-        tags = " ".join(classes[np.argwhere(y > 0.1)].flatten())
-        predicted_csv.write("{:d},\"{}\"\n".format(i, tags))
+        # print(y)
+        # print(classes[np.argwhere(y >= 0.5).flatten()])
+        tags = " ".join(classes[np.argwhere(y >= 0.5)].flatten())
+        # if len(tags) == 0:
+        #     tags = classes[np.argmax(y)]
+        predicted_csv.write("\"{:d}\",\"{}\"\n".format(i, tags))
         i += 1
