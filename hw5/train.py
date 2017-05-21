@@ -1,108 +1,120 @@
 #!/usr/bin/env python3
 
-from metrics import precision, recall, fmeasure
+from extract import extract
+from metrics import f1_score
 
 import numpy as np
+import tensorflow as tf
 
+from keras.backend.tensorflow_backend import set_session
 from keras.models import Model
 from keras.layers import Input, Embedding, Dense, Dropout
-from keras.layers import LSTM, Bidirectional
-from keras.layers import Conv1D, MaxPooling1D, Flatten
+from keras.layers import LSTM, GRU, Bidirectional
+from keras.layers import Conv1D, MaxPooling1D
+from keras.optimizers import Adam, RMSprop
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 import sys
 import pickle
 
-training_file_name = sys.argv[1]
-wordvec_file_name = sys.argv[2]
 
-with open(training_file_name, "rb") as training_file:
-    training_data = pickle.load(training_file)
+def build_model(input_dim, output_dim, embedding_layer):
+    sequence_input = Input(shape=(input_dim, ))
+    embedded_sequence = embedding_layer(sequence_input)
+    x = GRU(512, dropout=0.5, return_sequences=False)(embedded_sequence)
+    x = Dense(256, activation="relu")(x)
+    x = Dropout(0.5)(x)
+    x = Dense(128, activation="relu")(x)
+    x = Dropout(0.5)(x)
+    prediction = Dense(output_dim, activation="sigmoid")(x)
 
-wordvec = {}
-with open(wordvec_file_name, "r") as wordvec_file:
-    for row in wordvec_file:
-        columns = row.split(" ")
-        wordvec[columns[0]] = [float(n) for n in columns[1:]]
+    model = Model(sequence_input, prediction)
 
-training_x = np.array(training_data["training_sequences"])
-training_y = np.array(training_data["training_y"])
-classes = np.array(training_data["classes"])
-word_index = training_data["word_index"]
+    model.compile(
+        optimizer=Adam(), loss="categorical_crossentropy", metrics=[f1_score])
 
-sequence_length = training_x.shape[1]
-num_classes = training_y.shape[1]
-wordvec_dimension = len(wordvec["the"])
+    return model
 
-indices = np.arange(training_x.shape[0])
-np.random.seed(19940622)
-np.random.shuffle(indices)
-training_x = training_x[indices]
-training_y = training_y[indices]
-num_validating_x = training_x.shape[0] // 10
 
-validating_x = training_x[-num_validating_x:]
-validating_y = training_y[-num_validating_x:]
-training_x = training_x[:-num_validating_x]
-training_y = training_y[:-num_validating_x]
+if __name__ == "__main__":
+    # config = tf.ConfigProto()
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.3
+    # set_session(tf.Session(config=config))
 
-num_words = len(word_index)
-embedding_matrix = np.zeros((num_words, wordvec_dimension))
-for word, i in word_index.items():
-    if word in wordvec.keys():
-        embedding_matrix[i] = wordvec[word]
-    if word.capitalize() in wordvec.keys():
-        embedding_matrix[i] = wordvec[word.capitalize()]
-    if word.upper() in wordvec.keys():
-        embedding_matrix[i] = wordvec[word.upper()]
-    if word.lower() in wordvec.keys():
-        embedding_matrix[i] = wordvec[word.lower()]
+    training_file_name = sys.argv[1]
+    testing_file_name = sys.argv[2]
+    wordvec_file_name = sys.argv[3]
 
-embedding_layer = Embedding(
-    num_words,
-    wordvec_dimension,
-    input_length=sequence_length,
-    weights=[embedding_matrix],
-    trainable=False)
+    training_x, training_y, word_index, testing_x, classes = extract(
+        training_file_name, testing_file_name)
+    training_x = np.array(training_x)
+    training_y = np.array(training_y)
 
-sequence_input = Input(shape=(sequence_length, ))
-embedded_sequence = embedding_layer(sequence_input)
-# x = Bidirectional(LSTM(64, return_sequences=False))(embedded_sequence)
-x = Conv1D(32, 5, activation="relu")(embedded_sequence)
-x = MaxPooling1D(2)(x)
-x = Conv1D(64, 5, activation="relu")(x)
-x = MaxPooling1D(2)(x)
-x = Flatten()(x)
-x = Dropout(0.5)(x)
-x = Dense(1024, activation="relu")(x)
-x = Dropout(0.5)(x)
-x = Dense(1024, activation="relu")(x)
-x = Dropout(0.5)(x)
-prediction = Dense(num_classes, activation="sigmoid")(x)
+    wordvec = {}
+    with open(wordvec_file_name, "r") as wordvec_file:
+        for line in wordvec_file:
+            columns = line.split(" ")
+            wordvec[columns[0]] = np.array(
+                [float(n) for n in columns[1:]], dtype="float32")
 
-model = Model(sequence_input, prediction)
+    indices = np.arange(training_x.shape[0])
+    np.random.seed(19940622)
+    np.random.shuffle(indices)
+    training_x = training_x[indices]
+    training_y = training_y[indices]
+    num_validating_x = training_x.shape[0] // 5
 
-model.summary()
+    validating_x = training_x[-num_validating_x:]
+    validating_y = training_y[-num_validating_x:]
+    training_x = training_x[:-num_validating_x]
+    training_y = training_y[:-num_validating_x]
 
-model.compile(optimizer="adam", loss="binary_crossentropy", metrics=[fmeasure])
+    num_words = len(word_index) + 1
+    wordvec_dimension = 300  # glove
+    embedding_matrix = np.zeros((num_words, wordvec_dimension))
+    for word, i in word_index.items():
+        if word in wordvec.keys():
+            embedding_matrix[i] = wordvec[word]
+        if word.capitalize() in wordvec.keys():
+            embedding_matrix[i] = wordvec[word.capitalize()]
 
-model.fit(
-    training_x,
-    training_y,
-    batch_size=128,
-    epochs=100,
-    validation_data=(validating_x, validating_y))
+    sequence_length = training_x.shape[1]
+    num_classes = training_y.shape[1]
+    embedding_layer = Embedding(
+        num_words,
+        wordvec_dimension,
+        input_length=sequence_length,
+        weights=[embedding_matrix],
+        trainable=False)
 
-testing_x = np.array(training_data["testing_sequences"])
-predicted_y = model.predict(testing_x)
+    model = build_model(sequence_length, num_classes, embedding_layer)
+    model.summary()
 
-with open("predicted.csv", "w") as predicted_csv:
-    predicted_csv.write("\"id\",\"tags\"\n")
-    i = 0
-    for y in predicted_y:
-        # print(y)
-        # print(classes[np.argwhere(y >= 0.5).flatten()])
-        tags = " ".join(classes[np.argwhere(y >= 0.5)].flatten())
-        # if len(tags) == 0:
-        #     tags = classes[np.argmax(y)]
-        predicted_csv.write("\"{:d}\",\"{}\"\n".format(i, tags))
-        i += 1
+    # class_weight = {
+    #     k: v
+    #     for k, v in enumerate(1 / np.mean(training_y, axis=0))
+    # }
+
+    history = model.fit(
+        training_x,
+        training_y,
+        validation_data=(validating_x, validating_y),
+        batch_size=128,
+        epochs=100,
+        # class_weight=class_weight,
+        callbacks=[
+            EarlyStopping(
+                monitor="val_f1_score", mode="max", patience=10, verbose=1),
+            ModelCheckpoint(
+                "model.h5",
+                save_best_only=True,
+                save_weights_only=True,
+                monitor="val_f1_score",
+                mode="max",
+                verbose=1),
+            # ReduceLROnPlateau(
+            #         monitor="val_f1_score", factor=0.5, patience=5, verbose=1)
+        ])
+
+    with open("history.p", "wb") as history_file:
+        pickle.dump(history.history, history_file)
