@@ -57,17 +57,23 @@ if __name__ == "__main__":
             wordvec[columns[0]] = np.array(
                 [float(n) for n in columns[1:]], dtype="float32")
 
+    num_models = 5
+    num_validating_x = int(training_x.shape[0] * 0.3)
     indices = np.arange(training_x.shape[0])
     np.random.seed(19940622)
-    np.random.shuffle(indices)
-    training_x = training_x[indices]
-    training_y = training_y[indices]
-    num_validating_x = training_x.shape[0] // 5
+    training_xs = []
+    training_ys = []
+    validating_xs = []
+    validating_ys = []
+    for i in range(num_models):
+        np.random.shuffle(indices)
+        training_x = training_x[indices]
+        training_y = training_y[indices]
 
-    validating_x = training_x[-num_validating_x:]
-    validating_y = training_y[-num_validating_x:]
-    training_x = training_x[:-num_validating_x]
-    training_y = training_y[:-num_validating_x]
+        training_xs.append(training_x[:-num_validating_x])
+        training_ys.append(training_y[:-num_validating_x])
+        validating_xs.append(training_x[-num_validating_x:])
+        validating_ys.append(training_y[-num_validating_x:])
 
     num_words = len(word_index) + 1
     wordvec_dimension = 300  # glove
@@ -87,34 +93,32 @@ if __name__ == "__main__":
         weights=[embedding_matrix],
         trainable=False)
 
-    model = build_model(sequence_length, num_classes, embedding_layer)
-    model.summary()
+    historys = []
+    for i in range(num_models):
+        model = build_model(sequence_length, num_classes, embedding_layer)
+        model.summary()
 
-    # class_weight = {
-    #     k: v
-    #     for k, v in enumerate(1 / np.mean(training_y, axis=0))
-    # }
-
-    history = model.fit(
-        training_x,
-        training_y,
-        validation_data=(validating_x, validating_y),
-        batch_size=128,
-        epochs=100,
-        # class_weight=class_weight,
-        callbacks=[
-            EarlyStopping(
-                monitor="val_f1_score", mode="max", patience=10, verbose=1),
-            ModelCheckpoint(
-                "model.h5",
-                save_best_only=True,
-                save_weights_only=True,
-                monitor="val_f1_score",
-                mode="max",
-                verbose=1),
-            # ReduceLROnPlateau(
-            #         monitor="val_f1_score", factor=0.5, patience=5, verbose=1)
-        ])
+        historys.append(
+            model.fit(
+                training_xs[i],
+                training_ys[i],
+                validation_data=(validating_xs[i], validating_ys[i]),
+                batch_size=128,
+                epochs=100,
+                callbacks=[
+                    EarlyStopping(
+                        monitor="val_f1_score",
+                        mode="max",
+                        patience=10,
+                        verbose=1),
+                    ModelCheckpoint(
+                        "model_{:d}.h5".format(i),
+                        save_best_only=True,
+                        save_weights_only=True,
+                        monitor="val_f1_score",
+                        mode="max",
+                        verbose=1),
+                ]))
 
     with open("history.p", "wb") as history_file:
-        pickle.dump(history.history, history_file)
+        pickle.dump([h.history for h in historys], history_file)
