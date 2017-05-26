@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from configs import num_models, wordvec_dimension
 from extract import extract
 from metrics import f1_score
 
@@ -9,10 +10,10 @@ import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
 from keras.models import Model
 from keras.layers import Input, Embedding, Dense, Dropout
-from keras.layers import LSTM, GRU, Bidirectional
+from keras.layers import GRU, Bidirectional
 from keras.layers import Conv1D, MaxPooling1D
-from keras.optimizers import Adam, RMSprop
-from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from keras.optimizers import Adam
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 import sys
 import pickle
@@ -41,14 +42,17 @@ if __name__ == "__main__":
     # config.gpu_options.per_process_gpu_memory_fraction = 0.3
     # set_session(tf.Session(config=config))
 
+    np.random.seed(19940622)
+
     training_file_name = sys.argv[1]
     testing_file_name = sys.argv[2]
     wordvec_file_name = sys.argv[3]
 
-    training_x, training_y, word_index, testing_x, classes = extract(
+    training_x, training_y, tokenizer, testing_x, classes = extract(
         training_file_name, testing_file_name)
     training_x = np.array(training_x)
     training_y = np.array(training_y)
+    word_index = tokenizer.word_index
 
     wordvec = {}
     with open(wordvec_file_name, "r") as wordvec_file:
@@ -57,26 +61,7 @@ if __name__ == "__main__":
             wordvec[columns[0]] = np.array(
                 [float(n) for n in columns[1:]], dtype="float32")
 
-    num_models = 5
-    num_validating_x = int(training_x.shape[0] * 0.3)
-    indices = np.arange(training_x.shape[0])
-    np.random.seed(19940622)
-    training_xs = []
-    training_ys = []
-    validating_xs = []
-    validating_ys = []
-    for i in range(num_models):
-        np.random.shuffle(indices)
-        training_x = training_x[indices]
-        training_y = training_y[indices]
-
-        training_xs.append(training_x[:-num_validating_x])
-        training_ys.append(training_y[:-num_validating_x])
-        validating_xs.append(training_x[-num_validating_x:])
-        validating_ys.append(training_y[-num_validating_x:])
-
     num_words = len(word_index) + 1
-    wordvec_dimension = 300  # glove
     embedding_matrix = np.zeros((num_words, wordvec_dimension))
     for word, i in word_index.items():
         if word in wordvec.keys():
@@ -93,16 +78,27 @@ if __name__ == "__main__":
         weights=[embedding_matrix],
         trainable=False)
 
+    validating_ratio = 0.3
+    num_validating_x = int(training_x.shape[0] * validating_ratio)
+    indices = np.arange(training_x.shape[0])
     historys = []
     for i in range(num_models):
         model = build_model(sequence_length, num_classes, embedding_layer)
         model.summary()
 
+        np.random.shuffle(indices)
+        training_x = training_x[indices]
+        training_y = training_y[indices]
+        new_training_x = training_x[:-num_validating_x]
+        new_training_y = training_y[:-num_validating_x]
+        new_validating_x = training_x[-num_validating_x:]
+        new_validating_y = training_y[-num_validating_x:]
+
         historys.append(
             model.fit(
-                training_xs[i],
-                training_ys[i],
-                validation_data=(validating_xs[i], validating_ys[i]),
+                new_training_x,
+                new_training_y,
+                validation_data=(new_validating_x, new_validating_y),
                 batch_size=128,
                 epochs=100,
                 callbacks=[
@@ -120,5 +116,5 @@ if __name__ == "__main__":
                         verbose=1),
                 ]))
 
-    with open("history.p", "wb") as history_file:
+    with open("historys.p", "wb") as history_file:
         pickle.dump([h.history for h in historys], history_file)

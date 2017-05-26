@@ -60,4 +60,4 @@ def extract(training_file_name, testing_file_name):
     with open("label_mapping.p", "wb") as label_mapping_file:
         pickle.dump(classes, label_mapping_file)
 
-    return training_x, training_y, tokenizer.word_index, testing_x, classes
+    return training_x, training_y, tokenizer, testing_x, classes

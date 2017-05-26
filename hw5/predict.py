@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from configs import num_models, thresh, wordvec_dimension
 from extract import extract_testing_texts
 from train import build_model
 
@@ -13,9 +14,8 @@ import pickle
 
 testing_file_name = sys.argv[1]
 output_file_name = sys.argv[2]
-model_file_name = sys.argv[3]
-word_index_file_name = sys.argv[4]
-label_mapping_file_name = sys.argv[5]
+word_index_file_name = sys.argv[3]
+label_mapping_file_name = sys.argv[4]
 
 with open(word_index_file_name, "rb") as word_index_file:
     d = pickle.load(word_index_file)
@@ -31,7 +31,6 @@ testing_x = pad_sequences(testing_x, maxlen=sequence_length)
 testing_x = np.array(testing_x)
 
 num_words = len(tokenizer.word_index) + 1
-wordvec_dimension = 300  # glove
 embedding_layer = Embedding(
     num_words,
     wordvec_dimension,
@@ -40,19 +39,35 @@ embedding_layer = Embedding(
 
 num_classes = len(classes)
 model = build_model(sequence_length, num_classes, embedding_layer)
-model.load_weights(model_file_name)
 model.summary()
 
-predicted_y = model.predict(testing_x)
+predicted_ys = []
+for i in range(num_models):
+    model_file_name = "model_{:d}.h5".format(i)
+    model.load_weights(model_file_name)
+
+    predicted_ys.append(model.predict(testing_x))
+predicted_ys = np.array(predicted_ys)
 
 classes = np.array(classes)
-with open("predicted.csv", "w") as predicted_csv:
-    predicted_csv.write("\"id\",\"tags\"\n")
-    i = 0
-    thresh = 0.4
-    for y in predicted_y:
+
+# Mean
+predicted_y = np.mean(predicted_ys, axis=0)
+with open(output_file_name, "w") as output_file:
+    output_file.write("\"id\",\"tags\"\n")
+    for i, y in enumerate(predicted_y):
         tags = " ".join(classes[np.argwhere(y > thresh).flatten()])
         if len(tags) == 0:
             tags = classes[np.argmax(y)]
-        predicted_csv.write("\"{:d}\",\"{}\"\n".format(i, tags))
-        i += 1
+        output_file.write("\"{:d}\",\"{}\"\n".format(i, tags))
+
+# Voting
+# predicted_ys = (predicted_ys > thresh).astype(int)
+# predicted_y = np.sum(predicted_ys, axis=0)
+# with open(output_file_name, "w") as output_file:
+#     output_file.write("\"id\",\"tags\"\n")
+#     for i, y in enumerate(predicted_y):
+#         tags = " ".join(classes[np.argwhere(y > num_models // 2).flatten()])
+#         if len(tags) == 0:
+#             tags = classes[np.argmax(y)]
+#         output_file.write("\"{:d}\",\"{}\"\n".format(i, tags))

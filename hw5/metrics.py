@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
+from configs import thresh
+
 import keras.backend as K
-
-thresh = 0.4
-
 
 def precision(y_true, y_pred):
     true_positives = K.sum(
