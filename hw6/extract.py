@@ -2,6 +2,8 @@
 
 import numpy as np
 
+import pickle
+
 
 def extract_xy_train(training_file_name, is_normalized=True):
     x_train = []
@@ -38,7 +40,15 @@ def extract_xy_train(training_file_name, is_normalized=True):
 
     x_train = np.array(x_train)
     y_train = np.array(y_train)
-    return x_train, y_train, y_mean, y_mean_index_by_movie_id
+
+    y_mean_file_name = "y_mean.p"
+    with open(y_mean_file_name, "wb") as y_mean_file:
+        pickle.dump({
+            "y_mean": y_mean,
+            "y_mean_index_by_movie_id": y_mean_index_by_movie_id,
+        }, y_mean_file)
+
+    return x_train, y_train
 
 
 def extract_x_test(testing_file_name):

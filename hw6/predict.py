@@ -2,7 +2,8 @@
 
 import mf
 
-from config import IS_NORMALIZED
+from config import LATENT_DIMENSION
+from config import IS_NORMALIZED, IS_REGULARIZED, IS_BIASED
 from extract import extract_x_test
 
 import numpy as np
@@ -14,14 +15,18 @@ testing_file_name = sys.argv[1]
 output_file_name = sys.argv[2]
 model_file_name = sys.argv[3]
 
-model = mf.build()
+model = mf.build(
+    latent_dimension=LATENT_DIMENSION,
+    is_regularized=IS_REGULARIZED,
+    is_biased=IS_BIASED)
 model.summary()
 
 model.load_weights(model_file_name)
 
 x_test = extract_x_test(testing_file_name)
 
-ratings = model.predict(np.hsplit(x_test, 2))
+ratings = model.predict(
+    np.hsplit(x_test, x_test.shape[1]), batch_size=512, verbose=1)
 
 if IS_NORMALIZED:
     y_mean_file_name = sys.argv[4]

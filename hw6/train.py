@@ -2,7 +2,8 @@
 
 import mf
 
-from config import IS_NORMALIZED
+from config import SEED, VALIDATION_RATIO, LATENT_DIMENSION
+from config import IS_NORMALIZED, IS_REGULARIZED, IS_BIASED
 from extract import extract_xy_train
 
 import numpy as np
@@ -13,9 +14,6 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 import sys
 import pickle
-
-SEED = 19940622
-VALIDATION_RATIO = 0.2
 
 if __name__ == "__main__":
     # config = tf.ConfigProto()
@@ -29,12 +27,14 @@ if __name__ == "__main__":
 
     model_file_name = "model_{}.h5".format(suffix)
     history_file_name = "history_{}.p".format(suffix)
-    y_mean_file_name = "y_mean_{}.p".format(suffix)
 
-    x_train, y_train, y_mean, y_mean_index_by_movie_id = extract_xy_train(
+    x_train, y_train = extract_xy_train(
         training_file_name, is_normalized=IS_NORMALIZED)
 
-    model = mf.build()
+    model = mf.build(
+        latent_dimension=LATENT_DIMENSION,
+        is_regularized=IS_REGULARIZED,
+        is_biased=IS_BIASED)
     model.summary()
 
     num_x_train = x_train.shape[0]
@@ -48,9 +48,9 @@ if __name__ == "__main__":
     splited_x_validation = x_train[-num_x_validation:]
     splited_y_validation = y_train[-num_x_validation:]
     history = model.fit(
-        np.hsplit(splited_x_train, 2),
+        np.hsplit(splited_x_train, x_train.shape[1]),
         splited_y_train,
-        validation_data=(np.hsplit(splited_x_validation, 2),
+        validation_data=(np.hsplit(splited_x_validation, x_train.shape[1]),
                          splited_y_validation),
         batch_size=512,
         epochs=100,
@@ -68,15 +68,10 @@ if __name__ == "__main__":
     model.load_weights(model_file_name)
     validating_rmse = np.sqrt(
         model.evaluate(
-            np.hsplit(splited_x_validation, 2), splited_y_validation)[1])
+            np.hsplit(splited_x_validation, x_train.shape[1]),
+            splited_y_validation)[1])
     print("\n\n\033[1m\033[32mRMSE on validation set: {:f}\033[0m\n".format(
         validating_rmse))
 
     with open(history_file_name, "wb") as history_file:
         pickle.dump(history.history, history_file)
-
-    with open(y_mean_file_name, "wb") as y_mean_file:
-        pickle.dump({
-            "y_mean": y_mean,
-            "y_mean_index_by_movie_id": y_mean_index_by_movie_id,
-        }, y_mean_file)
