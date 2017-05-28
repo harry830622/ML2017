@@ -2,7 +2,6 @@
 
 from keras.models import Model
 from keras.layers import Input, Embedding, Flatten, Dot
-from keras.optimizers import Adam
 
 
 def build(num_users=10000, num_movies=5000, latent_dimension=120):
@@ -18,6 +17,6 @@ def build(num_users=10000, num_movies=5000, latent_dimension=120):
 
     model = Model([user_id_input, movie_id_input], output)
 
-    model.compile(optimizer=Adam(), loss="mse", metrics=["mse"])
+    model.compile(optimizer="adam", loss="mse", metrics=["mse"])
 
     return model
