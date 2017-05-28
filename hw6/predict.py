@@ -2,7 +2,8 @@
 
 import mf
 
-from extract import extract_testing_x
+from config import IS_NORMALIZED
+from extract import extract_x_test
 
 import numpy as np
 
@@ -18,10 +19,21 @@ model.summary()
 
 model.load_weights(model_file_name)
 
-testing_x = extract_testing_x(testing_file_name)
-testing_x = np.array(testing_x)
+x_test = extract_x_test(testing_file_name)
 
-ratings = model.predict(np.hsplit(testing_x, 2))
+ratings = model.predict(np.hsplit(x_test, 2))
+
+if IS_NORMALIZED:
+    y_mean_file_name = sys.argv[4]
+    with open(y_mean_file_name, "rb") as y_mean_file:
+        m = pickle.load(y_mean_file)
+        y_mean = m["y_mean"]
+        y_mean_index_by_movie_id = m["y_mean_index_by_movie_id"]
+    for i, x in enumerate(x_test):
+        movie_id = x[1]
+        if movie_id in y_mean_index_by_movie_id:
+            ratings[i] += y_mean[y_mean_index_by_movie_id[movie_id]]
+    ratings[ratings < 0] = 0
 
 with open(output_file_name, "w") as output_file:
     output_file.write("TestDataID,Rating\n")

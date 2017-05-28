@@ -2,7 +2,8 @@
 
 import mf
 
-from extract import extract_training_xy
+from config import IS_NORMALIZED
+from extract import extract_xy_train
 
 import numpy as np
 import tensorflow as tf
@@ -28,29 +29,29 @@ if __name__ == "__main__":
 
     model_file_name = "model_{}.h5".format(suffix)
     history_file_name = "history_{}.p".format(suffix)
+    y_mean_file_name = "y_mean_{}.p".format(suffix)
 
-    training_x, training_y = extract_training_xy(training_file_name)
-    training_x = np.array(training_x)
-    training_y = np.array(training_y)
+    x_train, y_train, y_mean, y_mean_index_by_movie_id = extract_xy_train(
+        training_file_name, is_normalized=IS_NORMALIZED)
 
     model = mf.build()
     model.summary()
 
-    num_training_x = training_x.shape[0]
-    indices = np.arange(num_training_x)
+    num_x_train = x_train.shape[0]
+    indices = np.arange(num_x_train)
     np.random.shuffle(indices)
-    training_x = training_x[indices]
-    training_y = training_y[indices]
-    num_validating_x = int(num_training_x * VALIDATION_RATIO)
-    splited_training_x = training_x[:-num_validating_x]
-    splited_training_y = training_y[:-num_validating_x]
-    splited_validating_x = training_x[-num_validating_x:]
-    splited_validating_y = training_y[-num_validating_x:]
+    x_train = x_train[indices]
+    y_train = y_train[indices]
+    num_x_validation = int(num_x_train * VALIDATION_RATIO)
+    splited_x_train = x_train[:-num_x_validation]
+    splited_y_train = y_train[:-num_x_validation]
+    splited_x_validation = x_train[-num_x_validation:]
+    splited_y_validation = y_train[-num_x_validation:]
     history = model.fit(
-        np.hsplit(splited_training_x, 2),
-        splited_training_y,
-        validation_data=(np.hsplit(splited_validating_x, 2),
-                         splited_validating_y),
+        np.hsplit(splited_x_train, 2),
+        splited_y_train,
+        validation_data=(np.hsplit(splited_x_validation, 2),
+                         splited_y_validation),
         batch_size=512,
         epochs=100,
         callbacks=[
@@ -67,9 +68,15 @@ if __name__ == "__main__":
     model.load_weights(model_file_name)
     validating_rmse = np.sqrt(
         model.evaluate(
-            np.hsplit(splited_validating_x, 2), splited_validating_y)[1])
-    print("\n\n\033[1m\033[92mRMSE on validation set: {:f}\033[0m\n".format(
+            np.hsplit(splited_x_validation, 2), splited_y_validation)[1])
+    print("\n\n\033[1m\033[32mRMSE on validation set: {:f}\033[0m\n".format(
         validating_rmse))
 
     with open(history_file_name, "wb") as history_file:
         pickle.dump(history.history, history_file)
+
+    with open(y_mean_file_name, "wb") as y_mean_file:
+        pickle.dump({
+            "y_mean": y_mean,
+            "y_mean_index_by_movie_id": y_mean_index_by_movie_id,
+        }, y_mean_file)
