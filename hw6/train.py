@@ -56,7 +56,7 @@ if __name__ == "__main__":
         epochs=100,
         callbacks=[
             EarlyStopping(
-                monitor="val_mean_squared_error", patience=5, verbose=1),
+                monitor="val_mean_squared_error", patience=3, verbose=1),
             ModelCheckpoint(
                 model_file_name,
                 save_best_only=True,
