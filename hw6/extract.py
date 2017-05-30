@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 
 
-def extract_xy_train(training_file_name, is_normalized=True):
+def extract_xy_train(training_file_name, is_normalized=True, is_biased=True):
     x_train = []
     y_train = []
     y_mean = []
@@ -41,6 +41,9 @@ def extract_xy_train(training_file_name, is_normalized=True):
     x_train = np.array(x_train)
     y_train = np.array(y_train)
 
+    if is_biased:
+        x_train = np.hstack((x_train, np.ones((x_train.shape[0], 1))))
+
     y_mean_file_name = "y_mean.p"
     with open(y_mean_file_name, "wb") as y_mean_file:
         pickle.dump({
@@ -51,7 +54,7 @@ def extract_xy_train(training_file_name, is_normalized=True):
     return x_train, y_train
 
 
-def extract_x_test(testing_file_name):
+def extract_x_test(testing_file_name, is_biased=True):
     x_test = []
     with open(testing_file_name, "r") as testing_file:
         nth_line = 0
@@ -63,4 +66,8 @@ def extract_x_test(testing_file_name):
                 ]
                 x_test.append([user_id, movie_id])
     x_test = np.array(x_test)
+
+    if is_biased:
+        x_test = np.hstack((x_test, np.ones((x_test.shape[0], 1))))
+
     return x_test

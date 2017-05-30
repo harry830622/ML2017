@@ -29,7 +29,7 @@ if __name__ == "__main__":
     history_file_name = "history_{}.p".format(suffix)
 
     x_train, y_train = extract_xy_train(
-        training_file_name, is_normalized=IS_NORMALIZED)
+        training_file_name, is_normalized=IS_NORMALIZED, is_biased=IS_BIASED)
 
     model = mf.build(
         latent_dimension=LATENT_DIMENSION,

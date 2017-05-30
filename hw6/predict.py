@@ -23,7 +23,7 @@ model.summary()
 
 model.load_weights(model_file_name)
 
-x_test = extract_x_test(testing_file_name)
+x_test = extract_x_test(testing_file_name, is_biased=IS_BIASED)
 
 ratings = model.predict(
     np.hsplit(x_test, x_test.shape[1]), batch_size=512, verbose=1)
