@@ -71,3 +71,26 @@ def extract_x_test(testing_file_name, is_biased=True):
         x_test = np.hstack((x_test, np.ones((x_test.shape[0], 1))))
 
     return x_test
+
+
+def extract_users(users_file_name, num_users=7000):
+    users = [[0 for j in range(2 + 7 + 21)] for i in range(num_users)]
+    with open(users_file_name, "r") as users_file:
+        nth_line = 0
+        for line in users_file:
+            nth_line += 1
+            if nth_line != 1:
+                user_id, gender, age, occupation, _ = line.strip("\n").split(
+                    "::")
+                gender = [1, 0] if gender == "M" else [0, 1]
+                age = [
+                    1 if age == s else 0
+                    for s in ["1", "18", "25", "35", "45", "50", "56"]
+                ]
+                occupation = [
+                    1 if occupation == str(i) else 0 for i in range(21)
+                ]
+                users[int(user_id)] = gender + age + occupation
+    users = np.array(users)
+
+    return users

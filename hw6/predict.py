@@ -2,22 +2,33 @@
 
 import mf
 
-from config import LATENT_DIMENSION
-from config import IS_NORMALIZED, IS_REGULARIZED, IS_BIASED
+from config import SEED, VALIDATION_RATIO
+from config import NUM_USERS, NUM_MOVIES, LATENT_DIMENSION
+from config import IS_NORMALIZED, IS_REGULARIZED, LAMBDA, IS_BIASED
 from extract import extract_x_test
 
 import numpy as np
 
+import os
 import sys
 import pickle
 
-testing_file_name = sys.argv[1]
+pwd = sys.argv[1]
 output_file_name = sys.argv[2]
 model_file_name = sys.argv[3]
 
+testing_file_name = os.path.join(pwd, "test.csv")
+users_file_name = os.path.join(pwd, "users.csv")
+movies_file_name = os.path.join(pwd, "movies.csv")
+
+# users = np.zeros((NUM_USERS, 2 + 7 + 21))
+
 model = mf.build(
+    num_users=NUM_USERS,
+    num_movies=NUM_MOVIES,
     latent_dimension=LATENT_DIMENSION,
     is_regularized=IS_REGULARIZED,
+    lamda=LAMBDA,
     is_biased=IS_BIASED)
 model.summary()
 
