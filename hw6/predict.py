@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import mf
+import dnn
 
+from config import METHOD
 from config import SEED, NUM_MODELS, VALIDATION_RATIO
 from config import NUM_USERS, NUM_MOVIES, LATENT_DIMENSION
 from config import IS_NORMALIZED, IS_REGULARIZED, LAMBDA, IS_BIASED
-from extract import extract_x_test
+from extract import extract_x_test, extract_users, extract_movies
 
 import numpy as np
 
@@ -21,18 +23,25 @@ testing_file_name = os.path.join(pwd, "test.csv")
 users_file_name = os.path.join(pwd, "users.csv")
 movies_file_name = os.path.join(pwd, "movies.csv")
 
-# users = np.zeros((NUM_USERS, 2 + 7 + 21))
-
-model = mf.build(
-    num_users=NUM_USERS,
-    num_movies=NUM_MOVIES,
-    latent_dimension=LATENT_DIMENSION,
-    is_regularized=IS_REGULARIZED,
-    lamda=LAMBDA,
-    is_biased=IS_BIASED)
-model.summary()
+if METHOD == "DNN":
+    IS_BIASED = False
 
 x_test = extract_x_test(testing_file_name, is_biased=IS_BIASED)
+users = extract_users(users_file_name, num_users=NUM_USERS)
+movies = extract_movies(movies_file_name, num_movies=NUM_MOVIES)
+
+if METHOD == "MF":
+    model = mf.build(
+        num_users=NUM_USERS,
+        num_movies=NUM_MOVIES,
+        latent_dimension=LATENT_DIMENSION,
+        is_regularized=IS_REGULARIZED,
+        lamda=LAMBDA,
+        is_biased=IS_BIASED)
+if METHOD == "DNN":
+    model = dnn.build(users, movies)
+
+model.summary()
 
 all_ratings = []
 for i in range(NUM_MODELS):
@@ -48,16 +57,13 @@ all_ratings = np.array(all_ratings)
 if IS_NORMALIZED:
     y_mean_file_name = sys.argv[4]
     with open(y_mean_file_name, "rb") as y_mean_file:
-        m = pickle.load(y_mean_file)
-        y_mean = m["y_mean"]
-        y_mean_index_by_movie_id = m["y_mean_index_by_movie_id"]
+        y_mean = pickle.load(y_mean_file)
 
     for i in range(all_ratings.shape[0]):
         for j, x in enumerate(x_test):
-            movie_id = x[1]
-            if movie_id in y_mean_index_by_movie_id:
-                all_ratings[i][j] += y_mean[y_mean_index_by_movie_id[movie_id]]
-        all_ratings[i][all_ratings[i] < 0] = 0
+            movie_id = int(x[1])
+            all_ratings[i][j] += y_mean[movie_id]
+        all_ratings[i][all_ratings[i] < 1] = 1
 
 ratings = np.mean(all_ratings, axis=0)
 
