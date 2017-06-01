@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from config import NUM_MOVIES
+from config import NUM_USERS, NUM_MOVIES
 
 import numpy as np
 
@@ -10,7 +10,8 @@ import pickle
 def extract_xy_train(training_file_name, is_normalized=True, is_biased=True):
     x_train = []
     y_train = []
-    y_mean = [[] for i in range(NUM_MOVIES)]
+    movie_mean = [[] for i in range(NUM_MOVIES)]
+    user_mean = [[] for i in range(NUM_USERS)]
     with open(training_file_name, "r") as training_file:
         nth_line = 0
         for line in training_file:
@@ -21,15 +22,22 @@ def extract_xy_train(training_file_name, is_normalized=True, is_biased=True):
                 ]
                 x_train.append([user_id, movie_id])
                 y_train.append(rating)
-                y_mean[movie_id].append(rating)
+                movie_mean[movie_id].append(rating)
+                user_mean[user_id].append(rating)
 
-    for i, ratings in enumerate(y_mean):
-        y_mean[i] = sum(ratings) / len(ratings) if len(ratings) != 0 else 0
+    for i, ratings in enumerate(movie_mean):
+        movie_mean[i] = sum(ratings) / len(ratings) if len(ratings) != 0 else 0
+    for i, ratings in enumerate(user_mean):
+        user_mean[i] = sum(ratings) / len(ratings) if len(ratings) != 0 else 0
+    global_mean = sum(y_train) / len(y_train)
+    y_mean = {"user": user_mean, "movie": movie_mean, "global": global_mean}
 
     if is_normalized:
         for i, y in enumerate(y_train):
+            user_id = x_train[i][0]
             movie_id = x_train[i][1]
-            y_train[i] -= y_mean[movie_id]
+            y_train[i] -= (
+                movie_mean[movie_id] + user_mean[user_id] + global_mean) / 3
 
     x_train = np.array(x_train, dtype=np.int64)
     y_train = np.array(y_train, dtype=np.float64)
@@ -37,11 +45,7 @@ def extract_xy_train(training_file_name, is_normalized=True, is_biased=True):
     if is_biased:
         x_train = np.hstack((x_train, np.ones((x_train.shape[0], 1))))
 
-    y_mean_file_name = "y_mean.p"
-    with open(y_mean_file_name, "wb") as y_mean_file:
-        pickle.dump(y_mean, y_mean_file)
-
-    return x_train, y_train
+    return x_train, y_train, y_mean
 
 
 def extract_x_test(testing_file_name, is_biased=True):

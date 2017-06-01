@@ -36,10 +36,14 @@ if __name__ == "__main__":
     if METHOD == "DNN":
         IS_BIASED = False
 
-    x_train, y_train = extract_xy_train(
+    x_train, y_train, y_mean = extract_xy_train(
         training_file_name, is_normalized=IS_NORMALIZED, is_biased=IS_BIASED)
     users = extract_users(users_file_name, num_users=NUM_USERS)
     movies = extract_movies(movies_file_name, num_movies=NUM_MOVIES)
+
+    y_mean_file_name = os.path.join(pwd, "y_mean.p")
+    with open(y_mean_file_name, "wb") as y_mean_file:
+        pickle.dump(y_mean, y_mean_file)
 
     num_x_train = x_train.shape[0]
     indices = np.arange(num_x_train)
@@ -76,7 +80,7 @@ if __name__ == "__main__":
         np.random.shuffle(indices)
         splited_x_train = splited_x_train[indices]
         splited_y_train = splited_y_train[indices]
-        index = int(num_splited_x_train * 0.8)
+        index = int(num_splited_x_train * 0.9)
 
         history = model.fit(
             np.hsplit(splited_x_train[:index], x_train.shape[1]),

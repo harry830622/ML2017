@@ -55,14 +55,28 @@ for i in range(NUM_MODELS):
 all_ratings = np.array(all_ratings)
 
 if IS_NORMALIZED:
-    y_mean_file_name = sys.argv[4]
+    y_mean_file_name = os.path.join(pwd, "y_mean.p")
     with open(y_mean_file_name, "rb") as y_mean_file:
         y_mean = pickle.load(y_mean_file)
+    user_mean = y_mean["user"]
+    movie_mean = y_mean["movie"]
+    global_mean = y_mean["global"]
 
     for i in range(all_ratings.shape[0]):
         for j, x in enumerate(x_test):
+            user_id = int(x[0])
             movie_id = int(x[1])
-            all_ratings[i][j] += y_mean[movie_id]
+            um = user_mean[user_id]
+            mm = movie_mean[movie_id]
+            if um != 0 and mm != 0:
+                mean = (um + mm + global_mean) / 3
+            elif mm != 0:
+                mean = mm
+            elif um != 0:
+                mean = um
+            else:
+                mean = global_mean
+            all_ratings[i][j] += mean
         all_ratings[i][all_ratings[i] < 1] = 1
 
 ratings = np.mean(all_ratings, axis=0)
