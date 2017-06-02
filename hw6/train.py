@@ -30,16 +30,12 @@ if __name__ == "__main__":
     suffix = sys.argv[2]
 
     training_file_name = os.path.join(pwd, "train.csv")
-    users_file_name = os.path.join(pwd, "users.csv")
-    movies_file_name = os.path.join(pwd, "movies.csv")
 
     if METHOD == "DNN":
         IS_BIASED = False
 
     x_train, y_train, y_mean = extract_xy_train(
         training_file_name, is_normalized=IS_NORMALIZED, is_biased=IS_BIASED)
-    users = extract_users(users_file_name, num_users=NUM_USERS)
-    movies = extract_movies(movies_file_name, num_movies=NUM_MOVIES)
 
     y_mean_file_name = os.path.join(pwd, "y_mean.p")
     with open(y_mean_file_name, "wb") as y_mean_file:
@@ -73,7 +69,12 @@ if __name__ == "__main__":
                 lamda=LAMBDA,
                 is_biased=IS_BIASED)
         if METHOD == "DNN":
-            model = dnn.build(users, movies)
+            model = dnn.build(
+                num_users=NUM_USERS,
+                num_movies=NUM_MOVIES,
+                latent_dimension=LATENT_DIMENSION,
+                is_regularized=IS_REGULARIZED,
+                lamda=LAMBDA)
 
         model.summary()
 

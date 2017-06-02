@@ -20,15 +20,11 @@ output_file_name = sys.argv[2]
 suffix = sys.argv[3]
 
 testing_file_name = os.path.join(pwd, "test.csv")
-users_file_name = os.path.join(pwd, "users.csv")
-movies_file_name = os.path.join(pwd, "movies.csv")
 
 if METHOD == "DNN":
     IS_BIASED = False
 
 x_test = extract_x_test(testing_file_name, is_biased=IS_BIASED)
-users = extract_users(users_file_name, num_users=NUM_USERS)
-movies = extract_movies(movies_file_name, num_movies=NUM_MOVIES)
 
 if METHOD == "MF":
     model = mf.build(
@@ -39,7 +35,12 @@ if METHOD == "MF":
         lamda=LAMBDA,
         is_biased=IS_BIASED)
 if METHOD == "DNN":
-    model = dnn.build(users, movies)
+    model = dnn.build(
+        num_users=NUM_USERS,
+        num_movies=NUM_MOVIES,
+        latent_dimension=LATENT_DIMENSION,
+        is_regularized=IS_REGULARIZED,
+        lamda=LAMBDA)
 
 model.summary()
 
