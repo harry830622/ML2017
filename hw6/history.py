@@ -58,3 +58,26 @@ plt.legend(
 
 plt.savefig("history_nonorm.png")
 plt.close()
+
+with open("history_all_0.p", "rb") as f:
+    history = pickle.load(f)
+
+with open("history_nobias_0.p", "rb") as f:
+    history_nobias = pickle.load(f)
+
+plt.figure(figsize=(12, 9))
+
+plt.plot(history["mean_squared_error"], "r--")
+plt.plot(history["val_mean_squared_error"], "r-")
+plt.plot(history_nobias["mean_squared_error"], "b--")
+plt.plot(history_nobias["val_mean_squared_error"], "b-")
+
+plt.title("Biased vs. Non-biased")
+plt.ylabel("MSE")
+plt.xlabel("# of epochs")
+plt.legend(
+    ["bias_train", "bias_valid", "nobias_train", "nobias_valid"],
+    loc="lower right")
+
+plt.savefig("history_nobias.png")
+plt.close()
