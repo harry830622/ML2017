@@ -8,49 +8,42 @@ from keras.layers import Dense, Dropout
 from keras.regularizers import l2
 
 
-def build(num_users=7000,
-          num_movies=5000,
-          latent_dimension=120,
+def build(num_users,
+          num_movies,
+          latent_dimension,
           is_regularized=True,
           **kwargs):
     lamda = kwargs["lamda"] if "lamda" in kwargs else 1e-5
 
-    user_id_input = Input(shape=(1, ))
-    movie_id_input = Input(shape=(1, ))
-    # user_feature = Embedding(
-    #     users.shape[0],
-    #     users.shape[1],
-    #     input_length=1,
-    #     weights=[users],
-    #     trainable=False)(user_id_input)
-    # movie_feature = Embedding(
-    #     movies.shape[0],
-    #     movies.shape[1],
-    #     input_length=1,
-    #     weights=[movies],
-    #     trainable=False)(movie_id_input)
-    user_feature = Embedding(
+    user_id_input = Input(shape=(1, ), name="UserID")
+    movie_id_input = Input(shape=(1, ), name="MovieID")
+
+    user_latent = Embedding(
         num_users,
         latent_dimension,
         input_length=1,
         embeddings_initializer="random_uniform",
-        embeddings_regularizer=l2(lamda)
-        if is_regularized else None)(user_id_input)
-    movie_feature = Embedding(
+        embeddings_regularizer=l2(lamda) if is_regularized else None,
+        name="UserLatent")(user_id_input)
+    movie_latent = Embedding(
         num_movies,
         latent_dimension,
         input_length=1,
         embeddings_initializer="random_uniform",
-        embeddings_regularizer=l2(lamda)
-        if is_regularized else None)(movie_id_input)
+        embeddings_regularizer=l2(lamda) if is_regularized else None,
+        name="MovieLatent")(movie_id_input)
 
-    user_feature = Flatten()(user_feature)
-    movie_feature = Flatten()(movie_feature)
-    x = Concatenate()([user_feature, movie_feature])
-    x = Dense(256, activation="elu")(x)
-    x = Dense(128, activation="elu")(x)
-    x = Dense(64, activation="elu")(x)
-    output = Dense(1, activation="elu")(x)
+    user_latent = Flatten(name="FlattenedUserLatent")(user_latent)
+    movie_latent = Flatten(name="FlattenedMovieLatent")(movie_latent)
+
+    features = Concatenate(
+        name="ConcatenatedUserMovieLatent")([user_latent, movie_latent])
+    x = Dense(64, activation="elu", name="Dense-1")(features)
+    x = Dense(128, activation="elu", name="Dense-2")(x)
+    x = Dense(256, activation="elu", name="Dense-3")(x)
+
+    output = Dense(1, activation="elu", name="Rating")(x)
+
     model = Model([user_id_input, movie_id_input], output)
 
     model.compile(optimizer="adam", loss="mse", metrics=["mse"])
