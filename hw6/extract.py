@@ -6,6 +6,14 @@ import numpy as np
 
 import pickle
 
+MOVIE_GENRES = [
+    "Action", "Adventure", "Animation", "Children's", "Comedy", "Crime",
+    "Documentary", "Drama", "Fantasy", "Film-Noir", "Horror", "Musical",
+    "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western"
+]
+GENDER = ["Male", "Female"]
+AGE = ["1", "18", "25", "35", "45", "50", "56"]
+
 
 def extract_xy_train(training_file_name, is_normalized=True, is_biased=True):
     x_train = []
@@ -77,10 +85,7 @@ def extract_users(users_file_name, num_users=7000):
                 user_id, gender, age, occupation, _ = line.strip("\n").split(
                     "::")
                 gender = [1, 0] if gender == "M" else [0, 1]
-                age = [
-                    1 if age == s else 0
-                    for s in ["1", "18", "25", "35", "45", "50", "56"]
-                ]
+                age = [1 if age == s else 0 for s in AGE]
                 occupation = [
                     1 if occupation == str(i) else 0 for i in range(21)
                 ]
@@ -99,13 +104,7 @@ def extract_movies(movies_file_name, num_movies=10000):
             if nth_line != 1:
                 movie_id, _, genres = line.strip("\n").split("::")
                 genres = [
-                    1 if s in genres.split("|") else 0
-                    for s in [
-                        "Action", "Adventure", "Animation", "Children's",
-                        "Comedy", "Crime", "Documentary", "Drama", "Fantasy",
-                        "Film-Noir", "Horror", "Musical", "Mystery", "Romance",
-                        "Sci-Fi", "Thriller", "War", "Western"
-                    ]
+                    1 if s in genres.split("|") else 0 for s in MOVIE_GENRES
                 ]
                 movies[int(movie_id)] = genres
     movies = np.array(movies, dtype=np.int64)
