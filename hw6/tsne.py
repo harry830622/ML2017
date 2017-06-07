@@ -86,68 +86,68 @@ plt.legend(rects, draw, loc="lower right")
 plt.savefig("movie_genres_tsne.png")
 plt.close()
 
-# movie_by_genre = {k: [] for k in MOVIE_GENRES}
-# for i, (m, v) in enumerate(zip(movies, movie_tsne)):
-#     genres = [g for n, g in zip(m, MOVIE_GENRES) if n == 1]
-#     for g in genres:
-#         movie_by_genre[g].append((i, v))
+movie_by_genre = {k: [] for k in MOVIE_GENRES}
+for i, (m, v) in enumerate(zip(movies, movie_tsne)):
+    genres = [g for n, g in zip(m, MOVIE_GENRES) if n == 1]
+    for g in genres:
+        movie_by_genre[g].append((i, v))
 
-# for i, ((g, vs), c) in enumerate(zip(movie_by_genre.items(), colors)):
-#     plt.figure(figsize=(16, 9))
+for i, ((g, vs), c) in enumerate(zip(movie_by_genre.items(), colors)):
+    plt.figure(figsize=(16, 9))
 
-#     plt.title(g)
+    plt.title(g)
 
-#     for i, v in vs:
-#         x, y = v
-#         plt.scatter(x, y, c=c)
+    for i, v in vs:
+        x, y = v
+        plt.scatter(x, y, c=c)
 
-#     plt.savefig("movie_{}_tsne.png".format(g))
-#     plt.close()
+    plt.savefig("movie_{}_tsne.png".format(g))
+    plt.close()
 
-# plt.figure(figsize=(16, 9))
+plt.figure(figsize=(16, 9))
 
-# plt.title("Gender")
+plt.title("Gender")
 
-# user_by_gender = [[] for i in range(2)]
-# for i, (u, t) in enumerate(zip(users, user_tsne)):
-#     v = u[:2]
-#     idx = np.where(v == 1)[0]
-#     if idx.shape[0] != 0:
-#         user_by_gender[idx[0]].append((i, t))
+user_by_gender = [[] for i in range(2)]
+for i, (u, t) in enumerate(zip(users, user_tsne)):
+    v = u[:2]
+    idx = np.where(v == 1)[0]
+    if idx.shape[0] != 0:
+        user_by_gender[idx[0]].append((i, t))
 
-# rects = []
-# colors = ["b", "r"]
-# for vs, c in zip(user_by_gender, colors):
-#     for user_id, v in vs:
-#         x, y = v
-#         plt.scatter(x, y, c=c)
-#     rects.append(patch.Rectangle((0, 0), 1, 1, fc=c))
+rects = []
+colors = ["b", "r"]
+for vs, c in zip(user_by_gender, colors):
+    for user_id, v in vs:
+        x, y = v
+        plt.scatter(x, y, c=c)
+    rects.append(patch.Rectangle((0, 0), 1, 1, fc=c))
 
-# plt.legend(rects, GENDER, loc="lower right")
+plt.legend(rects, GENDER, loc="lower right")
 
-# plt.savefig("user_gender_tsne.png")
-# plt.close()
+plt.savefig("user_gender_tsne.png")
+plt.close()
 
-# plt.figure(figsize=(16, 9))
+plt.figure(figsize=(16, 9))
 
-# plt.title("Age")
+plt.title("Age")
 
-# user_by_age = [[] for i in range(7)]
-# for i, (u, t) in enumerate(zip(users, user_tsne)):
-#     v = u[2:9]
-#     idx = np.where(v == 1)[0]
-#     if idx.shape[0] != 0:
-#         user_by_age[idx[0]].append((i, t))
+user_by_age = [[] for i in range(7)]
+for i, (u, t) in enumerate(zip(users, user_tsne)):
+    v = u[2:9]
+    idx = np.where(v == 1)[0]
+    if idx.shape[0] != 0:
+        user_by_age[idx[0]].append((i, t))
 
-# colors = cm.rainbow(np.linspace(0, 1, num=len(AGE)))
-# rects = []
-# for vs, c in zip(user_by_age, colors):
-#     for user_id, v in vs:
-#         x, y = v
-#         plt.scatter(x, y, c=c)
-#     rects.append(patch.Rectangle((0, 0), 1, 1, fc=c))
+colors = cm.rainbow(np.linspace(0, 1, num=len(AGE)))
+rects = []
+for vs, c in zip(user_by_age, colors):
+    for user_id, v in vs:
+        x, y = v
+        plt.scatter(x, y, c=c)
+    rects.append(patch.Rectangle((0, 0), 1, 1, fc=c))
 
-# plt.legend(rects, AGE, loc="lower right")
+plt.legend(rects, AGE, loc="lower right")
 
-# plt.savefig("user_age_tsne.png")
-# plt.close()
+plt.savefig("user_age_tsne.png")
+plt.close()
