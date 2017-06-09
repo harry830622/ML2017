@@ -24,7 +24,7 @@ testing_file_name = os.path.join(pwd, "test.csv")
 if METHOD == "DNN":
     IS_BIASED = False
 
-x_test = extract_x_test(testing_file_name, is_biased=IS_BIASED)
+x_test, x_test_ids = extract_x_test(testing_file_name, is_biased=IS_BIASED)
 
 if METHOD == "MF":
     model = mf.build(
@@ -84,5 +84,5 @@ ratings = np.mean(all_ratings, axis=0)
 
 with open(output_file_name, "w") as output_file:
     output_file.write("TestDataID,Rating\n")
-    for i, rating in enumerate(ratings, start=1):
-        output_file.write("{:d},{:.3f}\n".format(i, rating[0]))
+    for i, rating in enumerate(ratings):
+        output_file.write("{:d},{:.3f}\n".format(x_test_ids[i], rating[0]))

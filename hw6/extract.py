@@ -58,21 +58,23 @@ def extract_xy_train(training_file_name, is_normalized=True, is_biased=True):
 
 def extract_x_test(testing_file_name, is_biased=True):
     x_test = []
+    x_test_ids = []
     with open(testing_file_name, "r") as testing_file:
         nth_line = 0
         for line in testing_file:
             nth_line += 1
             if nth_line != 1:
-                _, user_id, movie_id = [
+                test_id, user_id, movie_id = [
                     int(s) for s in line.strip("\n").split(",")
                 ]
                 x_test.append([user_id, movie_id])
+                x_test_ids.append(test_id)
     x_test = np.array(x_test, dtype=np.int64)
 
     if is_biased:
         x_test = np.hstack((x_test, np.ones((x_test.shape[0], 1))))
 
-    return x_test
+    return x_test, x_test_ids
 
 
 def extract_users(users_file_name, num_users=7000):
