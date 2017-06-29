@@ -46,7 +46,7 @@ model.summary()
 
 all_ratings = []
 for i in range(NUM_MODELS):
-    model_file_name = os.path.join(pwd, "model_{}_{:d}.h5".format(suffix, i))
+    model_file_name = "model_{}_{:d}.h5".format(suffix, i)
 
     model.load_weights(model_file_name)
 
@@ -56,7 +56,7 @@ for i in range(NUM_MODELS):
 all_ratings = np.array(all_ratings)
 
 if IS_NORMALIZED:
-    y_mean_file_name = os.path.join(pwd, "y_mean.p")
+    y_mean_file_name = "y_mean.p"
     with open(y_mean_file_name, "rb") as y_mean_file:
         y_mean = pickle.load(y_mean_file)
     user_mean = y_mean["user"]
