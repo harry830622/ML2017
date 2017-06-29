@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 
+import os
 import sys
 import math
 
@@ -38,7 +39,9 @@ def clean(data):
         "not known",
     ]
 
+    cleaned_data = cleaned_data.drop("id", axis=1)
     cleaned_data = cleaned_data.replace(na_values, np.nan)
+    cleaned_data = cleaned_data.join(data["id"])
 
     # time
 
@@ -75,6 +78,12 @@ def clean(data):
             cleaned_data.loc[k, "latitude"] = latitude[v["lga"]]
 
     # gps_height
+
+    height = cleaned_data.groupby("lga")["gps_height"].mean().to_dict()
+
+    for k, v in cleaned_data.iterrows():
+        if pd.isnull(cleaned_data.loc[k, "gps_height"]):
+            cleaned_data.loc[k, "gps_height"] = height[v["lga"]]
 
     height = cleaned_data["gps_height"]
     height_median = height.median()
@@ -123,12 +132,13 @@ def clean(data):
     # funder
 
     funder = cleaned_data["funder"]
-    cleaned_data = cleaned_data.join(categorize(funder, "funder"))
+    cleaned_data = cleaned_data.join(categorize(funder, "funder", limit=10))
 
     # installer
 
     installer = cleaned_data["installer"]
-    cleaned_data = cleaned_data.join(categorize(installer, "installer"))
+    cleaned_data = cleaned_data.join(
+        categorize(installer, "installer", limit=10))
 
     # management
 
@@ -217,19 +227,19 @@ def clean(data):
 
 if __name__ == "__main__":
     x_train_file_name = sys.argv[1]
-    y_train_file_name = sys.argv[2]
-    x_test_file_name = sys.argv[3]
+    x_test_file_name = sys.argv[2]
+    save_dir = sys.argv[3]
 
     x_train = pd.read_csv(x_train_file_name, parse_dates=["date_recorded"])
-    y_train = pd.read_csv(y_train_file_name)
     x_test = pd.read_csv(x_test_file_name, parse_dates=["date_recorded"])
 
+    num_training_data = x_train.shape[0]
+
     cleaned_x_train_test = clean(x_train.append(x_test, ignore_index=True))
-    num_training_data = y_train.shape[0]
     clened_x_train = cleaned_x_train_test[:num_training_data]
     clened_x_test = cleaned_x_train_test[num_training_data:]
 
-    clened_x_train.to_csv("cleaned_x_train.csv")
-    clened_x_test.to_csv("cleaned_x_test.csv")
-    clened_x_train.to_pickle("cleaned_x_train.p")
-    clened_x_test.to_pickle("cleaned_x_test.p")
+    clened_x_train.to_csv(os.path.join(save_dir, "cleaned_x_train.csv"))
+    clened_x_test.to_csv(os.path.join(save_dir, "cleaned_x_test.csv"))
+    clened_x_train.to_pickle(os.path.join(save_dir, "cleaned_x_train.p"))
+    clened_x_test.to_pickle(os.path.join(save_dir, "cleaned_x_test.p"))

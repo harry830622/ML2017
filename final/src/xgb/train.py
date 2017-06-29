@@ -7,9 +7,6 @@ import xgboost as xgb
 import os
 import sys
 import random
-import pickle
-
-NUM_MODELS = 10
 
 if __name__ == "__main__":
     cleaned_x_train_file_name = sys.argv[1]
@@ -50,12 +47,17 @@ if __name__ == "__main__":
     cv_result.to_csv("cv_result.csv")
 
     SEED = 19940622
+    NUM_MODELS = 10
+
     random.seed(SEED)
 
     for i, (k, v) in enumerate(
             cv_result.nsmallest(NUM_MODELS, "error").iterrows()):
         best_param = v.to_dict()
         print(best_param)
+        # best_param = cv_result.loc[cv_result["error"].idxmin()].to_dict()
+        # print(best_param)
+        # for i in range(NUM_MODELS):
         model = xgb.train(
             {
                 "max_depth": int(best_param["depth"]),

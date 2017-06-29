@@ -3,6 +3,7 @@
 import pandas as pd
 import xgboost as xgb
 
+import os
 import sys
 
 
@@ -12,11 +13,12 @@ def search(x_train, y_train):
     subsample = [n / 10 for n in range(6, 10)]
     colsample = [n / 10 for n in range(6, 10)]
 
+    history = {}
     for d in depth:
         for e in eta:
             for s in subsample:
                 for c in colsample:
-                    history = xgb.cv(
+                    h = xgb.cv(
                         {
                             "max_depth": d,
                             "eta": e,
@@ -29,23 +31,28 @@ def search(x_train, y_train):
                         num_boost_round=1000,
                         nfold=5,
                         early_stopping_rounds=30)
+                    history["depth_{}_eta_{}_subsample_{}_colsample_{}".format(
+                        d, e, s, c)] = h
 
-                    history.to_pickle(
-                        "cv_depth_{}_eta_{}_subsample_{}_colsample_{}.p".
-                        format(d, e, s, c))
+    return history
 
 
 if __name__ == "__main__":
     cleaned_x_train_file_name = sys.argv[1]
     y_train_file_name = sys.argv[2]
+    save_dir = sys.argv[3]
 
     x_train = pd.read_pickle(cleaned_x_train_file_name)
     y_train = pd.read_csv(y_train_file_name)
-
+    x_train = x_train.drop("id", axis=1)
     y_train = y_train["status_group"].map({
         "functional": 0,
         "non functional": 1,
         "functional needs repair": 2,
     })
 
-    search(x_train, y_train)
+    history = search(x_train, y_train)
+
+    for k, v in history.items():
+        v.to_pickle(
+            os.path.join(save_dir, "cv_history_{}_{}.p".format("xgb", k)))

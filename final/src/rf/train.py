@@ -4,12 +4,10 @@ import numpy as np
 import pandas as pd
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.externals import joblib
 
 import os
 import sys
-import pickle
-
-NUM_MODELS = 10
 
 if __name__ == "__main__":
     cleaned_x_train_file_name = sys.argv[1]
@@ -31,7 +29,7 @@ if __name__ == "__main__":
         for e in it:
             score = np.load(e.path)
             param = {
-                k: int(v)
+                k: v
                 for k, v in zip(cv_result.columns[1:], [
                     s for i, s in enumerate(
                         e.name.rpartition(".npy")[0].split("_"))
@@ -44,6 +42,7 @@ if __name__ == "__main__":
     cv_result.to_csv("cv_result.csv")
 
     SEED = 19940622
+    NUM_MODELS = 10
 
     for i, (k, v
             ) in enumerate(cv_result.nlargest(NUM_MODELS, "score").iterrows()):
@@ -52,7 +51,8 @@ if __name__ == "__main__":
         model = RandomForestClassifier(
             n_estimators=1000,
             min_samples_split=int(best_param["sample"]),
-            max_features=int(best_param["feature"]),
+            max_features=int(best_param["feature"])
+            if best_param["feature"] != "auto" else "auto",
             bootstrap=True,
             oob_score=True,
             random_state=SEED,
@@ -60,5 +60,4 @@ if __name__ == "__main__":
             verbose=1)
         model.fit(x_train, y_train)
         print(i, model.score(x_train, y_train), model.oob_score_)
-        with open("model_{}_{}.p".format(suffix, i), "wb") as model_file:
-            pickle.dump(model, model_file)
+        joblib.dump(model, "model_{}_{}.p".format(suffix, i))

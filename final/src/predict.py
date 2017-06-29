@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-from train import NUM_MODELS
-
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-import matplotlib.pyplot as plt
 
+from sklearn.externals import joblib
+
+import os
 import sys
 
 if __name__ == "__main__":
     cleaned_x_test_file_name = sys.argv[1]
-    suffix = sys.argv[2]
-    output_file_name = sys.argv[3]
+    output_file_name = sys.argv[2]
+    model_dir = sys.argv[3]
 
     x_test = pd.read_pickle(cleaned_x_test_file_name)
     ids = x_test["id"].values
@@ -21,16 +21,23 @@ if __name__ == "__main__":
     num_testing_data = x_test.shape[0]
     num_classes = 3
 
-    y_test = np.zeros((NUM_MODELS, num_testing_data, num_classes))
-    for i in range(NUM_MODELS):
-        model = xgb.Booster(model_file="model_{}_{}".format(suffix, i))
+    num_xgb_models = 5
+    num_rf_models = 1
+
+    y_test = np.zeros((num_xgb_models + num_rf_models, num_testing_data,
+                       num_classes))
+
+    for i in range(num_xgb_models):
+        model = xgb.Booster(model_file=os.path.join(model_dir,
+                                                    "model_{}_{}".format(
+                                                        "xgboost", i)))
         y_test[i] = model.predict(xgb.DMatrix(x_test))
-        _, ax = plt.subplots(1, 1, figsize=(8, 6))
-        xgb.plot_importance(model, ax=ax, max_num_features=20)
-        ax.autoscale()
-        plt.tight_layout()
-        plt.savefig("feature_importance_{}_{}.png".format(suffix, i))
-        plt.close()
+
+    for i in range(num_rf_models):
+        model = joblib.load(
+            os.path.join(model_dir, "model_{}_{}.p".format("rf", i)))
+        y_test[num_xgb_models + i] = model.predict_proba(x_test)
+
     y_test = np.mean(y_test, axis=0)
     y_test = np.argmax(y_test, axis=1)
 
