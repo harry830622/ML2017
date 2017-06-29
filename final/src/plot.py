@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 
+import pandas as pd
 import xgboost as xgb
 import matplotlib.pyplot as plt
 
 import os
+import sys
 
 if __name__ == "__main__":
     cleaned_x_test_file_name = sys.argv[1]
     model_dir = sys.argv[2]
 
     # Plot feature importance
+    x_test = pd.read_pickle(cleaned_x_test_file_name)
     x_test = x_test.drop("id", axis=1)
     model = xgb.Booster(model_file=os.path.join(
-        model_dir, "model_{}_{}".format("xgb", i)))
+        model_dir, "model_{}_{}".format("xgb", 0)))
     y_test = model.predict(xgb.DMatrix(x_test))
     _, ax = plt.subplots(1, 1, figsize=(8, 6))
     xgb.plot_importance(model, ax=ax, max_num_features=20)
