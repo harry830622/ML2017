@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+import numpy as np
 import pandas as pd
 import xgboost as xgb
 import matplotlib.pyplot as plt
+
+from sklearn.externals import joblib
 
 import os
 import sys
@@ -22,4 +25,20 @@ if __name__ == "__main__":
     ax.autoscale()
     plt.tight_layout()
     plt.savefig("feature_importance_{}_{}.png".format("xgb", 0))
+    plt.close()
+
+    model = joblib.load(
+        os.path.join(model_dir, "model_{}_{}.p".format("rf", 0)))
+    y_test = model.predict_proba(x_test)
+    rf_importance = model.feature_importances_
+    indices = np.argsort(rf_importance)[::-1][:20]
+    plt.figure()
+    plt.title("Feature Importance")
+    plt.barh(
+        range(rf_importance[indices].shape[0]), rf_importance[indices][::-1])
+    plt.yticks(
+        range(rf_importance[indices].shape[0]),
+        x_test.columns.values[indices][::-1])
+    plt.tight_layout()
+    plt.savefig("feature_importance_{}_{}.png".format("rf", 0))
     plt.close()
