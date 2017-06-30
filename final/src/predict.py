@@ -30,7 +30,7 @@ if __name__ == "__main__":
     for i in range(num_xgb_models):
         model = xgb.Booster(model_file=os.path.join(model_dir,
                                                     "model_{}_{}".format(
-                                                        "xgboost", i)))
+                                                        "xgb", i)))
         y_test[i] = model.predict(xgb.DMatrix(x_test))
 
     for i in range(num_rf_models):
