@@ -1,4 +1,4 @@
-# ML2017
+# EE 5184: Machine Learning (Spring 2017)
 R05943139 張育瑄
 
 ## Environment
